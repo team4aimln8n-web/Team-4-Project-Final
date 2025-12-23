@@ -1,0 +1,266 @@
+{
+  "name": "REMOVE_FROM_CART",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -480,
+        -224
+      ],
+      "id": "134d6a50-abae-42cc-bdcc-999d56fca039",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Universal extractor for:\n * - cart_id\n * - product_id\n *\n * Handles:\n * - Deep nesting\n * - Arrays\n * - Flat objects\n * - Stringified JSON\n * - Raw UUID fallback\n */\n\n// UUID v4 pattern\nconst UUID_REGEX =\n  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n\nfunction extractIds(data) {\n  const result = {\n    cart_id: null,\n    product_id: null,\n  };\n\n  function traverse(value) {\n    if (result.cart_id && result.product_id) return;\n\n    // Case 1: String\n    if (typeof value === 'string') {\n      // Try JSON\n      try {\n        const parsed = JSON.parse(value);\n        traverse(parsed);\n        return;\n      } catch {\n        // UUID fallback\n        if (UUID_REGEX.test(value)) {\n          if (!result.cart_id) {\n            result.cart_id = value;\n          } else if (!result.product_id) {\n            result.product_id = value;\n          }\n        }\n        return;\n      }\n    }\n\n    // Case 2: Array\n    if (Array.isArray(value)) {\n      for (const item of value) {\n        traverse(item);\n      }\n      return;\n    }\n\n    // Case 3: Object\n    if (typeof value === 'object' && value !== null) {\n      for (const key of Object.keys(value)) {\n        const val = value[key];\n\n        // Explicit keys always win\n        if (key === 'cart_id') {\n          result.cart_id = val;\n        } else if (key === 'product_id') {\n          result.product_id = val;\n        } else {\n          traverse(val);\n        }\n      }\n    }\n  }\n\n  traverse(data);\n  return result;\n}\n\n// n8n input (single or multiple items)\nconst inputData = $input.all();\n\nconst { cart_id, product_id } = extractIds(inputData);\n\nreturn [\n  {\n    cart_id,\n    product_id,\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        -224
+      ],
+      "id": "e1ff5fe1-e48f-41f6-8721-d09a343d3df6",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "cart_items",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cart_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Code in JavaScript').item.json.cart_id }}"
+            },
+            {
+              "keyName": "product_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Code in JavaScript').item.json.product_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        416,
+        -320
+      ],
+      "id": "e23c319f-0ad3-42dc-b768-a848f3e4fbb7",
+      "name": "Delete a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "818295a2-e1c0-4c72-aca7-1c1c7a7360c5",
+              "name": "message",
+              "value": "Item successfully deleted from cart. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        -320
+      ],
+      "id": "78eeb7ae-dfe1-4553-bd04-b7e30aabf9ac",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "cart_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cart_id",
+              "keyValue": "={{ $json.cart_id }}"
+            },
+            {
+              "keyName": "product_id",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        -224
+      ],
+      "id": "8997469d-b0dc-4eb3-adc5-bd0a43e789ce",
+      "name": "Get a row",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b047cbe5-5992-4fa4-9d38-0eb3d6791240",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        192,
+        -224
+      ],
+      "id": "f2b4e05e-9852-40bd-afcf-bdf03d851df1",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "82c5faef-80fe-4138-a7bc-01cd0e3787db",
+              "name": "message",
+              "value": "No such product exists in the cart. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        -128
+      ],
+      "id": "99d55f8a-4d3b-4eab-9811-22dcd3112e32",
+      "name": "Edit Fields1"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "{\"cart_id\":\"38c9fe3f-3bda-4f37-b7de-3cbe330f9c80\",\"product_id\":\"112298c0-425f-482a-83fa-7e411099f30c\"}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a row": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Delete a row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a54e57b4-ba27-4880-b1fd-4b9a7b6b1d96",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "DvEeoSMdh00PspDs",
+  "tags": []
+}

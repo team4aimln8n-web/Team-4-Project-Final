@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details - ShopHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="chatbot.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">🛍️ ShopHub</a>
+            
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="orders.html">My Orders</a></li>
+            </ul>
+            
+            <div class="nav-icons">
+                <a href="cart.html" class="nav-icon">
+                    🛒
+                    <span id="cart-badge" class="cart-badge" style="display: none;">0</span>
+                </a>
+                <a href="login.html" id="login-link" class="nav-icon">👤</a>
+                <a href="#" id="user-link" class="nav-icon" style="display: none;" title="Profile">👤</a>
+                <button id="logout-btn" class="nav-icon" style="display: none; background: none; border: none; color: white; cursor: pointer;">Logout</button>
+            </div>
+            
+            <button class="mobile-menu-btn">☰</button>
+        </div>
+    </nav>
+
+    <!-- Product Details Section -->
+    <div class="container">
+        <div id="product-details-container">
+            <!-- Product details will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="products.html">Products</a>
+                <a href="orders.html">My Orders</a>
+                <a href="cart.html">Cart</a>
+                <a href="login.html">Login</a>
+            </div>
+            <p>&copy; 2024 ShopHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <!-- Scripts - CRITICAL: Load api.js first and WAIT for it -->
+<script src="api.js"></script>
+
+<!-- Product Details Loading Script - Runs IMMEDIATELY after api.js -->
+<script>
+console.log('📦 Product Details script loaded');
+
+let currentProduct = null;
+let selectedQuantity = 1;
+
+// Load product details
+async function loadProductDetails() {
+    console.log('🔄 loadProductDetails() called');
+    
+    const productId = getUrlParameter('id');
+    const container = document.getElementById('product-details-container');
+    
+    if (!productId) {
+        container.innerHTML = `
+            <div class="alert alert-error">
+                <span>⚠️</span>
+                <span>Product ID not found. Please select a product from the products page.</span>
+            </div>
+            <div class="text-center mt-20">
+                <a href="products.html" class="btn-primary" style="display: inline-block; width: auto;">Browse Products</a>
+            </div>
+        `;
+        return;
+    }
+
+    // Show loading spinner - use inline HTML to avoid function conflicts
+    container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+    try {
+        // Wait for API_ENDPOINTS to be available
+        let attempts = 0;
+        while (typeof API_ENDPOINTS === 'undefined' && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        if (typeof API_ENDPOINTS === 'undefined') {
+            throw new Error('API_ENDPOINTS not available');
+        }
+        
+        console.log('📡 Fetching product details from:', API_ENDPOINTS.GET_PRODUCT_DETAILS);
+        
+        const response = await fetch(`${API_ENDPOINTS.GET_PRODUCT_DETAILS}?product_id=${productId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        currentProduct = await response.json();
+
+        if (!currentProduct || !currentProduct.id) {
+            throw new Error('Product not found');
+        }
+
+        console.log('✅ Product details loaded:', currentProduct);
+        
+        displayProductDetails();
+
+    } catch (error) {
+        console.error('❌ Error loading product details:', error);
+        container.innerHTML = `
+            <div class="alert alert-error">
+                <span>⚠️</span>
+                <span>Failed to load product details: ${error.message}. The product may not exist or there may be a connection issue.</span>
+            </div>
+            <div class="text-center mt-20">
+                <a href="products.html" class="btn-primary" style="display: inline-block; width: auto;">Back to Products</a>
+            </div>
+        `;
+    }
+}
+
+// Display product details
+function displayProductDetails() {
+    const product = currentProduct;
+    const container = document.getElementById('product-details-container');
+    
+    const images = product.images && product.images.length > 0 
+        ? product.images 
+        : [{url: 'https://via.placeholder.com/500x500?text=No+Image', is_primary: true}];
+    
+    const primaryImage = images.find(img => img.is_primary) || images[0];
+    const isOutOfStock = product.stock_quantity <= 0;
+
+    container.innerHTML = `
+        <div class="product-details-container">
+            <!-- Product Images -->
+            <div class="product-images">
+                <img id="main-image" src="${primaryImage.url}" alt="${product.name}" class="main-image" onerror="this.src='https://via.placeholder.com/500x500?text=No+Image'">
+                
+                ${images.length > 1 ? `
+                    <div class="thumbnail-images">
+                        ${images.map((img, index) => `
+                            <img 
+                                src="${img.url}" 
+                                alt="${product.name} - Image ${index + 1}" 
+                                class="thumbnail ${img.is_primary ? 'active' : ''}" 
+                                onclick="changeMainImage('${img.url}', this)"
+                                onerror="this.src='https://via.placeholder.com/80x80?text=No+Image'"
+                            >
+                        `).join('')}
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- Product Info -->
+            <div class="product-details-info">
+                <h1>${product.name}</h1>
+                
+                <p class="product-details-price">${formatPrice(product.price)}</p>
+                
+                <div class="product-meta">
+                    <div class="product-meta-item">
+                        <strong>Category</strong>
+                        ${product.category || 'Uncategorized'}
+                    </div>
+                    <div class="product-meta-item">
+                        <strong>Availability</strong>
+                        <span class="${isOutOfStock ? 'out-of-stock' : ''}" style="font-weight: 600;">
+                            ${isOutOfStock ? 'Out of Stock' : `${product.stock_quantity} in stock`}
+                        </span>
+                    </div>
+                </div>
+                
+                <p class="product-details-description">${product.description || 'No description available.'}</p>
+                
+                ${!isOutOfStock ? `
+                    <div class="product-quantity">
+                        <label class="form-label">Quantity:</label>
+                        <div class="quantity-controls">
+                            <button class="quantity-btn" onclick="decreaseQuantity()">−</button>
+                            <span class="quantity-display" id="quantity-display">1</span>
+                            <button class="quantity-btn" onclick="increaseQuantity()">+</button>
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <button 
+                    class="btn-primary" 
+                    onclick="addProductToCart()"
+                    ${isOutOfStock ? 'disabled' : ''}
+                    style="font-size: 1.2em; padding: 15px 40px;"
+                >
+                    ${isOutOfStock ? '🚫 Out of Stock' : '🛒 Add to Cart'}
+                </button>
+                
+                <div class="mt-20">
+                    <a href="products.html" class="btn-secondary">← Back to Products</a>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    console.log('✅ Product details rendered to page');
+}
+
+// Change main image when clicking thumbnail
+function changeMainImage(imageUrl, thumbnail) {
+    const mainImage = document.getElementById('main-image');
+    if (mainImage) {
+        mainImage.src = imageUrl;
+    }
+    
+    // Update active thumbnail
+    document.querySelectorAll('.thumbnail').forEach(thumb => {
+        thumb.classList.remove('active');
+    });
+    if (thumbnail) {
+        thumbnail.classList.add('active');
+    }
+}
+
+// Increase quantity
+function increaseQuantity() {
+    if (!currentProduct) return;
+    
+    if (selectedQuantity < currentProduct.stock_quantity) {
+        selectedQuantity++;
+        const quantityDisplay = document.getElementById('quantity-display');
+        if (quantityDisplay) {
+            quantityDisplay.textContent = selectedQuantity;
+        }
+    } else {
+        showAlert(`Only ${currentProduct.stock_quantity} items available in stock`, 'error');
+    }
+}
+
+// Decrease quantity
+function decreaseQuantity() {
+    if (selectedQuantity > 1) {
+        selectedQuantity--;
+        const quantityDisplay = document.getElementById('quantity-display');
+        if (quantityDisplay) {
+            quantityDisplay.textContent = selectedQuantity;
+        }
+    }
+}
+
+// Add product to cart
+// Replace the "Add product to cart" function in product-details.html with this enhanced version
+
+// Toast notification function
+function showToast(message, duration = 3000) {
+    // Remove existing toast if any
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Create toast
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.innerHTML = `
+        <span class="toast-icon">✓</span>
+        <span class="toast-message">${message}</span>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Remove after duration
+    setTimeout(() => {
+        toast.classList.add('toast-exit');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, duration);
+}
+
+// Enhanced Add product to cart with loading states
+async function addProductToCart() {
+    if (!currentProduct) return;
+
+    // Get the button
+    const addButton = document.querySelector('.btn-primary[onclick="addProductToCart()"]');
+    
+    if (!addButton) {
+        console.error('Add to cart button not found');
+        return;
+    }
+    
+    // Prevent multiple clicks
+    if (addButton.classList.contains('loading')) {
+        console.log('⏳ Already processing, ignoring click');
+        return;
+    }
+
+    const userId = await getCurrentUserId();
+    
+    if (!userId) {
+        showAlert('Please login to add items to cart', 'error');
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 1500);
+        return;
+    }
+
+    // Store original button text
+    const originalText = addButton.innerHTML;
+    
+    // Add loading state
+    addButton.classList.add('loading');
+    addButton.disabled = true;
+    addButton.innerHTML = 'Adding to Cart...';
+
+    try {
+        const response = await fetch(API_ENDPOINTS.ADD_TO_CART, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                user_id: userId,
+                product_id: currentProduct.id,
+                quantity: selectedQuantity
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Remove loading, add success state
+            addButton.classList.remove('loading');
+            addButton.classList.add('success');
+            addButton.innerHTML = `✓ Added ${selectedQuantity} to Cart!`;
+            
+            // Animate cart icon
+            const cartIcon = document.querySelector('.nav-icon[href="cart.html"]');
+            if (cartIcon) {
+                cartIcon.classList.add('cart-shake');
+                setTimeout(() => {
+                    cartIcon.classList.remove('cart-shake');
+                }, 500);
+            }
+            
+            // Animate badge
+            const badge = document.getElementById('cart-badge');
+            if (badge) {
+                badge.classList.add('badge-pulse');
+                setTimeout(() => {
+                    badge.classList.remove('badge-pulse');
+                }, 500);
+            }
+            
+            // Show toast notification
+            showToast(`🛒 ${selectedQuantity} item(s) added to cart!`);
+            
+            // Update cart badge
+            await updateCartBadge();
+            
+            // Reset quantity
+            selectedQuantity = 1;
+            const quantityDisplay = document.getElementById('quantity-display');
+            if (quantityDisplay) {
+                quantityDisplay.textContent = '1';
+            }
+            
+            // Reset button after delay
+            setTimeout(() => {
+                addButton.classList.remove('success');
+                addButton.innerHTML = originalText;
+                addButton.disabled = false;
+            }, 2500);
+        } else {
+            throw new Error(result.message || 'Unknown error');
+        }
+
+    } catch (error) {
+        console.error('Error adding to cart:', error);
+        
+        // Remove loading state
+        addButton.classList.remove('loading');
+        addButton.innerHTML = originalText;
+        addButton.disabled = false;
+        
+        showAlert('Failed to add to cart: ' + error.message, 'error');
+    }
+}
+// Execute immediately when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📄 DOM loaded, loading product details...');
+        loadProductDetails();
+    });
+} else {
+    // DOM already loaded
+    console.log('📄 DOM already loaded, loading product details immediately...');
+    loadProductDetails();
+}
+
+// ALSO try to load after a short delay as backup
+setTimeout(() => {
+    const container = document.getElementById('product-details-container');
+    // Only load if container is still empty or showing loading
+    if (container && (container.innerHTML.includes('spinner') || container.children.length === 0)) {
+        console.log('⏰ Backup: Loading product details after timeout');
+        loadProductDetails();
+    }
+}, 1500);
+</script>
+
+<!-- Load chatbot LAST - it won't interfere now -->
+<script src="chatbot.js"></script>
+</body>
+</html>

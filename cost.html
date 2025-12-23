@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Project Cost Estimation Form</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 40px 20px;
+    }
+    
+    .container {
+        max-width: 900px;
+        margin: auto;
+        background: #fff;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    h1 {
+        color: #2d3748;
+        margin-bottom: 10px;
+        font-size: 2em;
+        text-align: center;
+    }
+    
+    .intro {
+        text-align: center;
+        color: #718096;
+        margin-bottom: 30px;
+        font-size: 1.05em;
+    }
+    
+    h2 {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 15px 20px;
+        color: white;
+        border-radius: 10px;
+        margin-top: 30px;
+        margin-bottom: 20px;
+        font-size: 1.3em;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 8px;
+        color: #2d3748;
+        font-size: 0.95em;
+    }
+    
+    input, select, textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border-radius: 8px;
+        border: 2px solid #e2e8f0;
+        font-size: 1em;
+        transition: all 0.3s ease;
+        background: #f7fafc;
+    }
+    
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    small {
+        color: #718096;
+        display: block;
+        margin-top: 5px;
+        font-size: 0.85em;
+        line-height: 1.4;
+    }
+    
+
+    
+    .info-box {
+        background: #ebf8ff;
+        border-left: 4px solid #4299e1;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 8px;
+    }
+    
+    .info-box strong {
+        color: #2c5282;
+    }
+    
+    .info-box ul {
+        margin: 15px 0;
+        padding-left: 20px;
+    }
+    
+    .info-box li {
+        margin: 8px 0;
+        color: #2d3748;
+    }
+    
+    button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 18px 40px;
+        border: none;
+        border-radius: 12px;
+        margin-top: 30px;
+        font-size: 1.1em;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+    
+    button:active {
+        transform: translateY(0);
+    }
+    
+    button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    /* Popup Styles */
+    .popup-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        z-index: 1000;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .popup-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+        max-width: 90%;
+        max-height: 90%;
+        overflow-y: auto;
+        z-index: 1001;
+        animation: slideUp 0.4s ease;
+        padding: 30px;
+    }
+    
+    .popup-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .popup-title {
+        font-size: 1.5em;
+        color: #2d3748;
+        font-weight: 600;
+    }
+    
+    .popup-close {
+        background: #f56565;
+        color: white;
+        border: none;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        font-size: 1.2em;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .popup-close:hover {
+        background: #c53030;
+        transform: rotate(90deg);
+    }
+    
+    .popup-content {
+        color: #2d3748;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -40%);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+        }
+    }
+    
+    .error-message {
+        background: #fff5f5;
+        border-left: 4px solid #fc8181;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+        color: #c53030;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>💰 Full Cost Estimation Form</h1>
+<p class="intro">Fill in the details below to get an estimated monthly cost for your e-commerce project with Supabase and n8n.</p>
+
+<form id="costEstimationForm">
+
+
+
+<!-- ========================================================= -->
+<!-- ======================  SUPABASE  ======================== -->
+<!-- ========================================================= -->
+
+<h2>🗄️ Supabase Usage Details</h2>
+
+<div class="form-group">
+    <label>1. Expected Number of Monthly Active Users</label>
+    <input type="number" id="supabase_mau" placeholder="e.g. 1000" min="0" />
+    <small>The number of unique users you expect in a typical month.</small>
+</div>
+
+<div class="form-group">
+    <label>2. Expected Database Storage Needed (in GB)</label>
+    <input type="number" id="supabase_db_storage" step="0.1" placeholder="e.g. 2.5" min="0" />
+    <small>Total data your app will store — product data, cart, orders, user data, etc.</small>
+</div>
+
+<div class="form-group">
+    <label>3. Expected File Storage Needed (in GB)</label>
+    <input type="number" id="supabase_file_storage" step="0.1" placeholder="e.g. 5" min="0" />
+    <small>Images, user uploads, product pictures, etc.</small>
+</div>
+
+<div class="form-group">
+    <label>4. API Requests per Month</label>
+    <input type="number" id="supabase_api_requests" placeholder="e.g. 50000" min="0" />
+    <small>How many times your frontend/back-end will talk to Supabase API.</small>
+</div>
+
+<div class="form-group">
+    <label>5. Edge Function Calls per Month</label>
+    <input type="number" id="supabase_edge_functions" placeholder="e.g. 2000" min="0" />
+    <small>Edge Functions = lightweight serverless functions used for fast backend tasks.</small>
+</div>
+
+<div class="form-group">
+    <label>6. Database Size Growth per Month (in MB)</label>
+    <input type="number" id="supabase_db_growth" step="1" placeholder="e.g. 50" min="0" />
+    <small>How much your database grows monthly — helps estimate long-term scalability.</small>
+</div>
+
+<div class="form-group">
+    <label>7. Realtime Usage / Concurrent Connections</label>
+    <input type="number" id="supabase_realtime" placeholder="e.g. 50" min="0" />
+    <small>Realtime connections occur during live cart updates, notifications, etc.</small>
+</div>
+
+<div class="form-group">
+    <label>8. Authentication Sign-Ins per Month</label>
+    <input type="number" id="supabase_auth_signins" placeholder="e.g. 3000" min="0" />
+    <small>Number of times users log in per month.</small>
+</div>
+
+<div class="form-group">
+    <label>9. Storage File Uploads per Month</label>
+    <input type="number" id="supabase_file_uploads" placeholder="e.g. 2000" min="0" />
+    <small>How many files your app uploads (product images, user assets).</small>
+</div>
+
+<div class="form-group">
+    <label>10. Outbound Data Transfer per Month (GB)</label>
+    <input type="number" id="supabase_data_transfer" step="0.1" placeholder="e.g. 10" min="0" />
+    <small>Data downloaded by users — images, product listings, etc.</small>
+</div>
+
+<div class="form-group">
+    <label>11. Do you require Supabase Enterprise Features?</label>
+    <select id="supabase_enterprise">
+        <option value="no">No</option>
+        <option value="yes">Yes (SSO, audit logs, advanced security)</option>
+    </select>
+    <small>This is usually not needed unless you are a large enterprise.</small>
+</div>
+
+<!-- ========================================================= -->
+<!-- =========================  n8n  ========================== -->
+<!-- ========================================================= -->
+
+<h2>⚡ n8n Workflow Usage Details</h2>
+
+<p style="margin-bottom: 20px; color: #718096;">This project uses 11 workflows. Please provide your expected usage so we can estimate the correct n8n plan.</p>
+
+<div class="form-group">
+    <label>1. Estimated Total Workflow Executions per Month</label>
+    <input type="number" id="n8n_executions" placeholder="e.g. 10000" min="0" />
+    <small>Each time a workflow runs (e.g., order created, cart updated, message processed), it counts as one execution.</small>
+</div>
+
+<div class="form-group">
+    <label>2. Expected Peak Executions (Concurrency)</label>
+    <input type="number" id="n8n_concurrency" placeholder="e.g. 5" min="0" />
+    <small>How many executions might happen at the same time? Higher concurrency may require a higher plan.</small>
+</div>
+
+<div class="form-group">
+    <label>3. Preferred Hosting Option</label>
+    <select id="n8n_hosting">
+        <option value="cloud">n8n Cloud</option>
+        <option value="self_hosted">Self-Hosted (We will NOT estimate cost for this option)</option>
+    </select>
+    <small>Choose "Cloud" if you want us to calculate monthly cost. Choose "Self-Hosted" if you will manage your own infrastructure.</small>
+</div>
+
+<!-- ========================================================= -->
+<!-- ======================= AI USAGE ========================= -->
+<!-- ========================================================= -->
+
+<h2>🤖 AI Agent Usage Details</h2>
+
+<div class="form-group">
+    <label>1. Expected AI Agent Executions per Day</label>
+    <input type="number" id="ai_executions_per_day" placeholder="e.g. 100" min="0" />
+    <small>The number of times AI agents will run on your e-commerce store each day. This includes AI-powered features that assist in store operations.</small>
+</div>
+
+<!-- ========================================================= -->
+<!-- ======================= HOSTING INFO ===================== -->
+<!-- ========================================================= -->
+
+<h2>🌐 Front-End Hosting (Variable Cost)</h2>
+
+<div class="info-box">
+    <p>
+        This project includes a complete frontend that must be hosted on a web hosting service
+        (such as Hostinger, GoDaddy, Netlify, Vercel, AWS Amplify, etc.). Hosting cost varies 
+        depending on the platform you choose and the amount of traffic your website receives.
+    </p>
+
+    <p style="margin-top: 15px;"><strong>Important:</strong> Because different hosting providers have different pricing models,
+    we <strong>cannot</strong> estimate your exact frontend hosting cost. Instead, here is a general guide:
+    </p>
+
+    <ul>
+        <li><strong>Basic Shared Hosting</strong> (Hostinger, GoDaddy) – typically $3 to $12/month</li>
+        <li><strong>Static Hosting with Global CDN</strong> (Netlify, Vercel) – Free to $20/month</li>
+        <li><strong>Cloud Hosting</strong> (AWS Amplify, Firebase Hosting) – $15 to $50+/month depending on traffic</li>
+        <li><strong>Dedicated / Managed Hosting</strong> – $50 to $150+/month (for high-traffic stores)</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+        Your final monthly cost will include:
+    </p>
+    <ul>
+        <li>Supabase plan cost</li>
+        <li>n8n plan cost</li>
+        <li><strong>+ Frontend Hosting Cost (variable, depends on your chosen provider)</strong></li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+        Once you select a hosting provider, we can help you refine your total cost estimate.
+    </p>
+</div>
+
+<!-- SUBMIT BUTTON -->
+<button type="submit" id="submitBtn">📊 Calculate Cost Estimation</button>
+
+</form>
+</div>
+
+<!-- Popup Modal -->
+<div class="popup-overlay" id="popupOverlay">
+    <div class="popup-container" id="popupContainer">
+        <div class="popup-header">
+            <div class="popup-title">💰 Cost Estimation Results</div>
+            <button type="button" class="popup-close" id="closePopup">×</button>
+        </div>
+        <div class="popup-content" id="popupContent">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Calculating your cost estimation...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('costEstimationForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // TODO: Replace this with your actual n8n webhook URL
+    const webhookUrl = 'https://team4n8n.app.n8n.cloud/webhook/cost-estimate';
+    
+    // Collect form data
+    const formData = {
+        supabase: {
+            monthly_active_users: document.getElementById('supabase_mau').value || 0,
+            db_storage_gb: document.getElementById('supabase_db_storage').value || 0,
+            file_storage_gb: document.getElementById('supabase_file_storage').value || 0,
+            api_requests: document.getElementById('supabase_api_requests').value || 0,
+            edge_function_calls: document.getElementById('supabase_edge_functions').value || 0,
+            db_growth_mb: document.getElementById('supabase_db_growth').value || 0,
+            realtime_connections: document.getElementById('supabase_realtime').value || 0,
+            auth_signins: document.getElementById('supabase_auth_signins').value || 0,
+            file_uploads: document.getElementById('supabase_file_uploads').value || 0,
+            data_transfer_gb: document.getElementById('supabase_data_transfer').value || 0,
+            enterprise_features: document.getElementById('supabase_enterprise').value
+        },
+        n8n: {
+            total_executions: document.getElementById('n8n_executions').value || 0,
+            peak_concurrency: document.getElementById('n8n_concurrency').value || 0,
+            hosting_option: document.getElementById('n8n_hosting').value
+        },
+        ai: {
+            executions_per_day: document.getElementById('ai_executions_per_day').value || 0
+        },
+        timestamp: new Date().toISOString()
+    };
+    
+    // Show popup with loading state
+    const popup = document.getElementById('popupOverlay');
+    const popupContent = document.getElementById('popupContent');
+    popup.style.display = 'block';
+    
+    popupContent.innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Calculating your cost estimation...</p>
+        </div>
+    `;
+    
+    // Disable submit button
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Processing...';
+    
+    try {
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const htmlResponse = await response.text();
+        
+        // Insert the received HTML into popup
+        popupContent.innerHTML = htmlResponse;
+        
+    } catch (error) {
+        console.error('Error:', error);
+        popupContent.innerHTML = `
+            <div class="error-message">
+                <strong>⚠️ Error:</strong> Failed to fetch cost estimation. Please check your webhook URL and try again.
+                <br><br>
+                <small>Error details: ${error.message}</small>
+            </div>
+        `;
+    } finally {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.textContent = '📊 Calculate Cost Estimation';
+    }
+});
+
+// Close popup functionality
+document.getElementById('closePopup').addEventListener('click', function() {
+    document.getElementById('popupOverlay').style.display = 'none';
+});
+
+// Close popup when clicking outside
+document.getElementById('popupOverlay').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.style.display = 'none';
+    }
+});
+
+// Close popup with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.getElementById('popupOverlay').style.display = 'none';
+    }
+});
+</script>
+
+</body>
+</html>

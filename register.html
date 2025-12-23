@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - ShopHub</title>
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Load Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">🛍️ ShopHub</a>
+            
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="orders.html">My Orders</a></li>
+            </ul>
+            
+            <div class="nav-icons">
+                <a href="cart.html" class="nav-icon">
+                    🛒
+                    <span id="cart-badge" class="cart-badge" style="display: none;">0</span>
+                </a>
+                <a href="login.html" id="login-link" class="nav-icon">👤</a>
+                <a href="#" id="user-link" class="nav-icon" style="display: none;" title="Profile">👤</a>
+                <button id="logout-btn" class="nav-icon" style="display: none; background: none; border: none; color: white; cursor: pointer;">Logout</button>
+            </div>
+            
+            <button class="mobile-menu-btn">☰</button>
+        </div>
+    </nav>
+
+    <!-- Register Section -->
+    <div class="container">
+        <div class="form-container">
+            <h1 style="text-align: center; margin-bottom: 10px;">Create Account</h1>
+            <p style="text-align: center; color: var(--text-light); margin-bottom: 40px;">
+                Join ShopHub and start shopping today
+            </p>
+
+            
+
+            <form id="register-form">
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" id="full-name" class="form-input" placeholder="Enter your full name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email Address *</label>
+                    <input type="email" id="email" class="form-input" placeholder="Enter your email" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <input type="password" id="password" class="form-input" placeholder="Create a password (min 6 characters)" required minlength="6">
+                    <small style="color: var(--text-light); font-size: 0.85em;">
+                        Password must be at least 6 characters long
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Confirm Password *</label>
+                    <input type="password" id="confirm-password" class="form-input" placeholder="Confirm your password" required>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="terms" required style="width: auto;">
+                        <span>I agree to the Terms and Conditions</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-primary" style="font-size: 1.1em;">
+                    Create Account
+                </button>
+            </form>
+
+            <div style="text-align: center; margin-top: 30px; padding-top: 30px; border-top: 1px solid var(--border-gray);">
+                <p style="color: var(--text-light); margin-bottom: 15px;">
+                    Already have an account?
+                </p>
+                <a href="login.html" class="btn-secondary" style="display: inline-block; width: auto;">
+                    Login
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="products.html">Products</a>
+                <a href="orders.html">My Orders</a>
+                <a href="cart.html">Cart</a>
+                <a href="login.html">Login</a>
+            </div>
+            <p>&copy; 2024 ShopHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Load api.js FIRST - it contains Supabase config -->
+    <script src="api.js"></script>
+    
+    <script>
+        console.log('=== REGISTRATION PAGE LOADED ===');
+        
+        const debugInfo = document.getElementById('debug-text');
+
+        // Wait for api.js to load, then check Supabase
+        setTimeout(() => {
+            console.log('Checking Supabase configuration from api.js...');
+            
+            // Check if supabaseClient was created by api.js
+            if (typeof window.supabaseClient === 'undefined' || !window.supabaseClient) {
+                console.error('❌ ERROR: Supabase client not found from api.js');
+                debugInfo.innerHTML = `
+                    ❌ ERROR: Supabase not initialized<br>
+                    <strong>Action Required:</strong><br>
+                    1. Open api.js<br>
+                    2. Replace SUPABASE_URL and SUPABASE_ANON_KEY<br>
+                    3. Refresh this page
+                `;
+                debugInfo.style.background = '#ffcccc';
+            } else {
+                console.log('✅ Supabase client found from api.js');
+                debugInfo.innerHTML = '';
+                debugInfo.style.background = '#ccffcc';
+            }
+        }, 100);
+
+        // ==========================================
+        // FORM SUBMISSION HANDLER
+        // ==========================================
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevents page refresh
+            
+            console.log('=== FORM SUBMITTED ===');
+
+            // Get Supabase client from api.js
+            const supabaseClient = window.supabaseClient;
+
+            if (!supabaseClient) {
+                alert('ERROR: Supabase not configured. Please check api.js and add your credentials.');
+                console.error('Cannot proceed: supabaseClient not available');
+                return;
+            }
+
+            const fullName = document.getElementById('full-name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const termsAccepted = document.getElementById('terms').checked;
+
+            console.log('Form values:', { fullName, email, passwordLength: password.length, termsAccepted });
+
+            // Validate inputs
+            if (!fullName || !email || !password || !confirmPassword) {
+                alert('Please fill in all fields');
+                console.log('❌ Validation failed: Empty fields');
+                return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('Please enter a valid email address');
+                console.log('❌ Validation failed: Invalid email');
+                return;
+            }
+
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters long');
+                console.log('❌ Validation failed: Password too short');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                alert('Passwords do not match');
+                console.log('❌ Validation failed: Passwords do not match');
+                return;
+            }
+
+            if (!termsAccepted) {
+                alert('Please accept the Terms and Conditions');
+                console.log('❌ Validation failed: Terms not accepted');
+                return;
+            }
+
+            console.log('✅ All validations passed');
+
+            // Disable submit button
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Account...';
+            console.log('Submit button disabled, calling Supabase...');
+
+            try {
+                console.log('Calling supabaseClient.auth.signUp...');
+                
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: fullName
+                        }
+                    }
+                });
+
+                console.log('Supabase response received:');
+                console.log('- User:', data?.user ? '✅ Created' : '❌ Not created');
+                console.log('- Session:', data?.session ? '✅ Active' : '❌ None (email confirmation required)');
+                console.log('- Error:', error ? error.message : 'None');
+
+                if (error) {
+                    throw new Error(error.message);
+                }
+
+                if (data.user && !data.session) {
+                    // Email confirmation required
+                    console.log('✅ SUCCESS: Account created - Email confirmation required');
+                    alert('✅ Account created successfully!\n\nPlease check your email (' + email + ') for a verification link.\n\nAfter verifying, you can login.');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                    
+                } else if (data.session) {
+                    // Logged in immediately
+                    console.log('✅ SUCCESS: Account created and logged in');
+                    
+                    localStorage.setItem('user_id', data.user.id);
+                    localStorage.setItem('user_email', data.user.email);
+                    localStorage.setItem('user_name', fullName);
+
+                    alert('✅ Account created successfully! Redirecting to home...');
+
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                }
+
+            } catch (error) {
+                console.error('❌ Registration error:', error);
+                console.error('Full error object:', error);
+                
+                let errorMessage = 'Registration failed: ' + error.message;
+                
+                if (error.message.includes('already registered') || error.message.includes('already been registered')) {
+                    errorMessage = '❌ This email is already registered.\n\nPlease use the Login page instead.';
+                } else if (error.message.includes('invalid email')) {
+                    errorMessage = '❌ Please enter a valid email address.';
+                } else if (error.message.includes('Password')) {
+                    errorMessage = '❌ ' + error.message;
+                }
+                
+                alert(errorMessage);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Account';
+            }
+        });
+
+        // Real-time password match validation
+        document.getElementById('confirm-password').addEventListener('input', function() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = this.value;
+            
+            if (confirmPassword && password !== confirmPassword) {
+                this.style.borderColor = '#dc3545';
+            } else {
+                this.style.borderColor = '#e0e0e0';
+            }
+        });
+
+        console.log('=== REGISTRATION SCRIPT LOADED ===');
+    </script>
+</body>
+
+</html>

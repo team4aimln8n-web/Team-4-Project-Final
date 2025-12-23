@@ -1,0 +1,532 @@
+{
+  "name": "EMAIL_ON_DELIVERED/CANCELLED_ORDER_STATUS_FOR_FEEDBACK",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        -112
+      ],
+      "id": "758655d3-922a-4d3d-b314-6fe698c7bcec",
+      "name": "Schedule Trigger After Each Hour"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "orders",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "delivered"
+            },
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "cancelled"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        -112
+      ],
+      "id": "db8cdd6c-51c7-42a7-bde7-8b8deba355ea",
+      "name": "Fetching Cancelled/Delivered Orders",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "cancelled",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "fe9ecfdb-e266-4c74-bc43-fafb3ba2fbbc"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "949f91c6-f554-419b-8d56-0d9717ba51d4",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "delivered",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        -112
+      ],
+      "id": "01714d55-cfd5-4ca6-b031-d3a2d8db2d16",
+      "name": "Navigating Cancelled and Delivered Orders"
+    },
+    {
+      "parameters": {
+        "url": "https://nfzpywnjqwwmwoincvem.supabase.co/auth/v1/admin/users",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "SERVICE_ROLE_KEY_OF_SUPABASE"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SERVICE_ROLE_KEY_OF_SUPABASE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        -16
+      ],
+      "id": "3a957657-54b8-4a9e-a74d-81b9e8b9472c",
+      "name": "Fetching Users' Data - Delivered"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the first item from the input\nconst inputItem = items[0].json;\n\n// Map the 'users' array into the n8n item format\nreturn inputItem.users.map(user => {\n  return {\n    json: user\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -208
+      ],
+      "id": "61b4ca18-024b-4634-8689-37cd37acb381",
+      "name": "Refining User's Data - Cancelled"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the first item from the input\nconst inputItem = items[0].json;\n\n// Map the 'users' array into the n8n item format\nreturn inputItem.users.map(user => {\n  return {\n    json: user\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -16
+      ],
+      "id": "722c1db0-f594-45c1-bb67-65fa4322269e",
+      "name": "Refining User's Data - Delivered"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ed661fdb-93b1-4e0f-820e-2966b3d6f78f",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "={{ $('Fetching Cancelled/Delivered Orders').first().json.user_id }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        -208
+      ],
+      "id": "3fff9ef3-0b3a-4525-a2df-393510514543",
+      "name": "Filtering Out Irrelevant User's Data - Cancelled"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ed661fdb-93b1-4e0f-820e-2966b3d6f78f",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "={{ $('Fetching Cancelled/Delivered Orders').first().json.user_id }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        -16
+      ],
+      "id": "0e586ddf-3fab-494c-8503-41d6b73b7df7",
+      "name": "Filtering Out Irrelevant User's Data - Delivered"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "We’re sorry your order was canceled – Can we get your feedback?",
+        "message": "=<!DOCTYPE html> <html>   <body style=\"margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, Helvetica, sans-serif;\">     <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f4f6f8; padding:20px;\">       <tr>         <td align=\"center\">           <table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#ffffff; border-radius:6px; overflow:hidden;\">                          <tr>               <td style=\"padding:24px 24px 16px 24px; text-align:center;\">                 <h2 style=\"margin:0; color:#222222; font-size:22px; font-weight:600;\">                   Help us improve                 </h2>               </td>             </tr>              <tr>               <td style=\"padding:0 24px 16px 24px; color:#555555; font-size:14px; line-height:1.6;\">                 Hi {{ $json.user_metadata.full_name }},                 <br><br>                 We noticed that your order {{ $('Navigating Cancelled and Delivered Orders').item.json.order_number }} was canceled. We’re sorry for any inconvenience caused.                 <br><br>                 Your feedback is important to us and helps us ensure a better experience for you and other customers.               </td>             </tr>              <tr>               <td align=\"center\" style=\"padding:20px;\">                 <a href=\"https://team4aimln8n-web.github.io/EcommerceSite/feedback.html\"                    style=\"background-color:#2563eb; color:#ffffff; text-decoration:none; padding:14px 28px; font-size:15px; border-radius:4px; display:inline-block;\">                   Share Your Feedback                 </a>               </td>             </tr>              <tr>               <td style=\"padding:0 24px 24px 24px; color:#777777; font-size:12px; line-height:1.5;\">                 This survey takes less than a minute. Your responses are confidential and help us improve our services.                 <br><br>                 Thank you for being a valued ShopHub customer.               </td>             </tr>              <tr>               <td style=\"background-color:#f4f6f8; padding:12px; text-align:center; color:#999999; font-size:11px;\">                 © 2025 ShopHub. All rights reserved.               </td>             </tr>            </table>         </td>       </tr>     </table>   </body> </html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        -208
+      ],
+      "id": "cc635c65-f911-4534-9078-2e95f03823e7",
+      "name": "Sending Feedback Seeking Email For Cancelled Orders",
+      "webhookId": "53b3d0e7-f7ad-4085-90b9-c8a9bd5b088f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "AzK31zUOPtXk3Sre",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Your order is delivered. Share your experience",
+        "message": "=<!DOCTYPE html>\n<html>\n  <body style=\"margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, Helvetica, sans-serif;\">\n    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f4f6f8; padding:20px;\">\n      <tr>\n        <td align=\"center\">\n          <table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#ffffff; border-radius:6px; overflow:hidden;\">\n            \n            <tr>\n              <td style=\"padding:24px 24px 16px 24px; text-align:center;\">\n                <h2 style=\"margin:0; color:#222222; font-size:22px; font-weight:600;\">\n                  We’d love your feedback\n                </h2>\n              </td>\n            </tr>\n\n            <tr>\n              <td style=\"padding:0 24px 16px 24px; color:#555555; font-size:14px; line-height:1.6;\">\n                Hi {{ $json.user_metadata.full_name }},\n                <br><br>\n                Your order {{ $('Navigating Cancelled and Delivered Orders').item.json.order_number }} has been delivered, and we hope everything arrived as expected.\n                Your feedback helps us improve and serve you better.\n              </td>\n            </tr>\n\n            <tr>\n              <td align=\"center\" style=\"padding:20px;\">\n                <a href=\"https://team4aimln8n-web.github.io/EcommerceSite/feedback.html\"\n                   style=\"background-color:#2563eb; color:#ffffff; text-decoration:none; padding:14px 28px; font-size:15px; border-radius:4px; display:inline-block;\">\n                  Share Your Feedback\n                </a>\n              </td>\n            </tr>\n\n            <tr>\n              <td style=\"padding:0 24px 24px 24px; color:#777777; font-size:12px; line-height:1.5;\">\n                This survey takes less than a minute. Your responses are confidential and reviewed carefully.\n                <br><br>\n                Thank you for choosing ShopHub.\n              </td>\n            </tr>\n\n            <tr>\n              <td style=\"background-color:#f4f6f8; padding:12px; text-align:center; color:#999999; font-size:11px;\">\n                © 2025 ShopHub. All rights reserved.\n              </td>\n            </tr>\n\n          </table>\n        </td>\n      </tr>\n    </table>\n  </body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        -16
+      ],
+      "id": "9f1449bf-3add-4983-9da2-05e51e79b7ff",
+      "name": "Sending Feedback Seeking Email For Delivered Orders",
+      "webhookId": "c40d1509-6d35-4dc8-8170-ccd5bcb3118d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "AzK31zUOPtXk3Sre",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Fetching Delivered/Cancelled Orders",
+        "height": 528,
+        "width": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -320
+      ],
+      "id": "450e4669-f0db-4c78-b5b4-6f26e1cd321b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Scheduled To Br Triggered After Each An Hour",
+        "height": 528,
+        "width": 224,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -320
+      ],
+      "id": "90cacab6-1e1a-42e9-a696-9ac29dedd4ca",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Navigating Cancelled/Delivered Orders",
+        "height": 528,
+        "width": 224,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -320
+      ],
+      "id": "6463207f-ccdb-4645-8701-68e8c335df04",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "url": "https://nfzpywnjqwwmwoincvem.supabase.co/auth/v1/admin/users",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "SERVICE_ROLE_KEY_OF_SUPABASE"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SERVICE_ROLE_KEY_OF_SUPABASE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        -208
+      ],
+      "id": "6128478b-bd29-4686-9e54-c3041b8c85ad",
+      "name": "Fetching Users' Data - Cancelled"
+    },
+    {
+      "parameters": {
+        "content": "## Branches For Sending Emails\n- **Top Branch** is Responsible For Sending Feedback Seeking Email To Users For **Delivered Orders.**\n- **Bottom Branch** is Responsible For Sending Feedback Seeking Email To Users For **Cancelled Orders.**",
+        "height": 288,
+        "width": 944,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        608,
+        -320
+      ],
+      "id": "4123905d-bdeb-402b-b9b8-82f4fc2243d6",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 240,
+        "width": 944,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        608,
+        -32
+      ],
+      "id": "b7f211e3-52d5-41df-bc83-8e817429fa46",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {
+    "Schedule Trigger After Each Hour": [
+      {
+        "json": {
+          "timestamp": "2025-12-17T03:04:28.826-05:00",
+          "Readable date": "December 17th 2025, 3:04:28 am",
+          "Readable time": "3:04:28 am",
+          "Day of week": "Wednesday",
+          "Year": "2025",
+          "Month": "December",
+          "Day of month": "17",
+          "Hour": "03",
+          "Minute": "04",
+          "Second": "28",
+          "Timezone": "America/New_York (UTC-05:00)"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Schedule Trigger After Each Hour": {
+      "main": [
+        [
+          {
+            "node": "Fetching Cancelled/Delivered Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching Cancelled/Delivered Orders": {
+      "main": [
+        [
+          {
+            "node": "Navigating Cancelled and Delivered Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Navigating Cancelled and Delivered Orders": {
+      "main": [
+        [
+          {
+            "node": "Fetching Users' Data - Cancelled",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetching Users' Data - Delivered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching Users' Data - Delivered": {
+      "main": [
+        [
+          {
+            "node": "Refining User's Data - Delivered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refining User's Data - Cancelled": {
+      "main": [
+        [
+          {
+            "node": "Filtering Out Irrelevant User's Data - Cancelled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refining User's Data - Delivered": {
+      "main": [
+        [
+          {
+            "node": "Filtering Out Irrelevant User's Data - Delivered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtering Out Irrelevant User's Data - Cancelled": {
+      "main": [
+        [
+          {
+            "node": "Sending Feedback Seeking Email For Cancelled Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtering Out Irrelevant User's Data - Delivered": {
+      "main": [
+        [
+          {
+            "node": "Sending Feedback Seeking Email For Delivered Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching Users' Data - Cancelled": {
+      "main": [
+        [
+          {
+            "node": "Refining User's Data - Cancelled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "296f0895-da61-4479-a6ff-a846b0417b3a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "cGE7pXcrePam0gH6",
+  "tags": []
+}

@@ -1,0 +1,130 @@
+{
+  "name": "GET_ORDER_STATUS",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "15b9c73d-2718-448b-b817-00c143a5e568",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Recursively searches for `order_id` in any structure:\n * - Handles deep nesting\n * - Handles arrays\n * - Handles flat objects\n * - Handles JSON strings\n * - Treats UUID-like strings as order_id\n */\n\nfunction extractOrderId(data) {\n  let foundOrderId = null;\n\n  // UUID regex pattern (v4-style, general enough)\n  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n\n  function traverse(value) {\n    if (foundOrderId !== null) return;\n\n    // Case 1: JSON string → try parsing\n    if (typeof value === 'string') {\n      // Check if string looks like a UUID\n      if (uuidRegex.test(value)) {\n        foundOrderId = value;\n        return;\n      }\n\n      try {\n        const parsed = JSON.parse(value);\n        traverse(parsed);\n      } catch (e) {\n        // Not JSON → ignore\n      }\n      return;\n    }\n\n    // Case 2: Array → traverse each item\n    if (Array.isArray(value)) {\n      for (const item of value) {\n        traverse(item);\n        if (foundOrderId !== null) return;\n      }\n      return;\n    }\n\n    // Case 3: Object → inspect keys\n    if (typeof value === 'object' && value !== null) {\n      for (const key of Object.keys(value)) {\n        // Direct match for order_id\n        if (key === 'order_id') {\n          foundOrderId = value[key];\n          return;\n        }\n\n        // If key might contain order ID (common keys) and value is UUID\n        if (\n          (key.toLowerCase().includes('order') || key.toLowerCase().includes('id')) &&\n          typeof value[key] === 'string' &&\n          uuidRegex.test(value[key])\n        ) {\n          foundOrderId = value[key];\n          return;\n        }\n\n        traverse(value[key]);\n        if (foundOrderId !== null) return;\n      }\n    }\n  }\n\n  traverse(data);\n  return foundOrderId;\n}\n\n// n8n input (works for single or multiple items)\nconst inputData = $input.all();\n\n// Try extracting from entire payload\nconst orderId = extractOrderId(inputData);\n\nreturn [\n  {\n    order_id: orderId\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "c88e8d02-faf9-4032-864d-03e1421b492f",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "orders",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.order_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "76c55f30-3f1c-4b6b-ab04-c61a8c8f1a04",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// The 'items' variable holds an array of all input items.\n// Each item is an object like: { json: { ... }, ... }\n// We want to process the 'json' data of each item.\n\n// We use 'map' to iterate over all input items and transform them.\nconst extractedData = items.map(item => {\n    // Access the data object from the current item\n    const inputJson = item.json;\n\n    // Check if the 'status' property exists\n    if (inputJson && inputJson.status !== undefined) {\n        // Return a new item structure containing only the extracted 'status'\n        return {\n            json: {\n                status: inputJson.status\n            }\n        };\n    } else {\n        // If 'status' is missing, you might want to return an empty object or handle the error\n        console.warn(\"Input item is missing the 'status' property.\");\n        return {\n            json: {\n                status: null, // Or any default value you prefer\n                error: \"Status property not found\"\n            }\n        };\n    }\n});\n\n// The Code node expects the final result to be returned.\nreturn extractedData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "e6a7e7e2-6832-476f-88bb-c5a27da7b54d",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "{\"order_id\":\"05a0fff8-96e6-4d75-a3c8-a5a6d225e8cb\"}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "aed38e30-61e9-490f-911d-1a568888269f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "8x15UOacAFndFiQD",
+  "tags": []
+}

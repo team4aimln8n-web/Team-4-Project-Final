@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Product - Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">🛍️ ShopHub Admin</a>
+            
+            <ul class="nav-menu">
+                <li><a href="index.html">Storefront</a></li>
+                <!-- Admin links will be inserted here dynamically by api.js -->
+            </ul>
+            
+            <div class="nav-icons">
+                <a href="cart.html" class="nav-icon">
+                    🛒
+                    <span id="cart-badge" class="cart-badge" style="display: none;">0</span>
+                </a>
+                <a href="login.html" id="login-link" class="nav-icon">👤</a>
+                <a href="#" id="user-link" class="nav-icon" style="display: none;" title="Profile">👤</a>
+                <button id="logout-btn" class="nav-icon" style="display: none; background: none; border: none; color: white; cursor: pointer;">Logout</button>
+            </div>
+            
+            <button class="mobile-menu-btn">☰</button>
+        </div>
+    </nav>
+
+    <!-- Admin Add Product Section -->
+    <div class="container">
+        <div class="admin-container">
+            <div class="admin-header">
+                <div>
+                    <h1 class="section-title">Add New Product</h1>
+                    <p class="section-subtitle">Add products to your store inventory</p>
+                </div>
+                <a href="admin-orders.html" class="btn-secondary">
+                    Manage Orders →
+                </a>
+            </div>
+
+            <div class="form-container" style="max-width: 100%;">
+                <form id="add-product-form">
+                    <!-- Admin Authentication -->
+                    <div class="alert alert-info mb-20">
+                        <span>🔐</span>
+                        <span><strong>Admin Access Required:</strong> Enter your admin password to add products.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Admin Password *</label>
+                        <input type="password" id="admin-token" class="form-input" placeholder="Enter admin password" required>
+                        <small style="color: var(--text-light); font-size: 0.85em;">
+                            Set this password in your n8n workflow
+                        </small>
+                    </div>
+
+                    <hr style="margin: 30px 0; border: none; border-top: 2px solid var(--border-gray);">
+
+                    <!-- Product Information -->
+                    <h3 style="margin-bottom: 20px; color: var(--primary-black);">Product Information</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Product Name *</label>
+                        <input type="text" id="product-name" class="form-input" placeholder="e.g., Blue Cotton T-Shirt" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Description *</label>
+                        <textarea id="product-description" class="form-textarea" placeholder="Detailed product description..." required></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Price ($) *</label>
+                            <input type="number" id="product-price" class="form-input" placeholder="29.99" step="0.01" min="0" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Stock Quantity *</label>
+                            <input type="number" id="product-stock" class="form-input" placeholder="100" min="0" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <input type="text" id="product-category" class="form-input" placeholder="e.g., Clothing, Electronics, Accessories">
+                    </div>
+
+                    <hr style="margin: 30px 0; border: none; border-top: 2px solid var(--border-gray);">
+
+                    <!-- Product Images -->
+                    <h3 style="margin-bottom: 20px; color: var(--primary-black);">Product Images</h3>
+                    <p style="color: var(--text-light); margin-bottom: 20px;">
+                        Add up to 5 product images. Use direct image URLs (from Imgur, Cloudinary, or Supabase Storage).
+                    </p>
+
+                    <div id="image-inputs-container">
+                        <div class="image-url-group">
+                            <label class="form-label">Image 1 (Primary) *</label>
+                            <input type="url" class="form-input image-url" placeholder="https://example.com/image1.jpg" required>
+                        </div>
+
+                        <div class="image-url-group">
+                            <label class="form-label">Image 2</label>
+                            <input type="url" class="form-input image-url" placeholder="https://example.com/image2.jpg">
+                        </div>
+
+                        <div class="image-url-group">
+                            <label class="form-label">Image 3</label>
+                            <input type="url" class="form-input image-url" placeholder="https://example.com/image3.jpg">
+                        </div>
+
+                        <div class="image-url-group">
+                            <label class="form-label">Image 4</label>
+                            <input type="url" class="form-input image-url" placeholder="https://example.com/image4.jpg">
+                        </div>
+
+                        <div class="image-url-group">
+                            <label class="form-label">Image 5</label>
+                            <input type="url" class="form-input image-url" placeholder="https://example.com/image5.jpg">
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-20">
+                        <span>💡</span>
+                        <span><strong>Tip:</strong> Use free image hosting services like Imgur.com or upload to Supabase Storage for image URLs.</span>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn-primary mt-20" style="font-size: 1.1em;">
+                        ➕ Add Product
+                    </button>
+                </form>
+
+                <!-- Recent Products -->
+                <div style="margin-top: 60px; padding-top: 40px; border-top: 2px solid var(--border-gray);">
+                    <h3 style="margin-bottom: 20px; color: var(--primary-black);">Recently Added Products</h3>
+                    <div id="recent-products" class="product-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+                        <!-- Recently added products will be shown here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="products.html">Products</a>
+            </div>
+            <p>&copy; 2024 ShopHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="api.js"></script>
+    <script>
+        // Handle add product form submission
+        document.getElementById('add-product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const adminToken = document.getElementById('admin-token').value.trim();
+            const productName = document.getElementById('product-name').value.trim();
+            const productDescription = document.getElementById('product-description').value.trim();
+            const productPrice = parseFloat(document.getElementById('product-price').value);
+            const productStock = parseInt(document.getElementById('product-stock').value);
+            const productCategory = document.getElementById('product-category').value.trim();
+
+            // Collect image URLs (only non-empty ones)
+            const imageInputs = document.querySelectorAll('.image-url');
+            const imageUrls = Array.from(imageInputs)
+                .map(input => input.value.trim())
+                .filter(url => url);
+
+            // Validate
+            if (!adminToken) {
+                showAlert('Admin password is required', 'error');
+                return;
+            }
+
+            if (!productName || !productDescription || !productPrice || productStock < 0) {
+                showAlert('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (imageUrls.length === 0) {
+                showAlert('At least one product image is required', 'error');
+                return;
+            }
+
+            // Disable submit button
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Adding Product...';
+
+            try {
+                // ⭐ SINGLE FETCH REQUEST ⭐
+                const fullPayload = {
+                    admin_token: adminToken,
+                    name: productName,
+                    description: productDescription,
+                    price: productPrice,
+                    category: productCategory,
+                    stock_quantity: productStock,
+                    image_urls: imageUrls   // <-- merged here
+                };
+
+                const response = await fetch(API_ENDPOINTS.ADMIN_ADD_PRODUCT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(fullPayload)
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    // Handle invalid admin token specifically
+                    if (result.message === "Invalid admin token") {
+                        showAlert("❌ Admin token is invalid. Please try again.", "error");
+                    } else {
+                        showAlert("❌ " + (result.message || "Failed to add product"), "error");
+                    }
+                    return; // stop further execution
+                }
+
+                showAlert('✅ Product added successfully!', 'success');
+
+                // Reset form
+                e.target.reset();
+
+                // Reload recent products
+                loadRecentProducts();
+
+            } catch (error) {
+                console.error('Error adding product:', error);
+                showAlert('❌ Failed to add product: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '➕ Add Product';
+            }
+        });
+
+        // Load recent products
+        async function loadRecentProducts() {
+            try {
+                const response = await fetch(API_ENDPOINTS.GET_PRODUCTS);
+                const products = await response.json();
+
+                const recentProducts = products.slice(0, 4);
+                const container = document.getElementById('recent-products');
+
+                if (recentProducts.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-light);">No products yet.</p>';
+                    return;
+                }
+
+                container.innerHTML = recentProducts.map(product => {
+                    const imageUrl = product.images && product.images.length > 0 
+                        ? product.images[0].url 
+                        : 'https://via.placeholder.com/200x200?text=No+Image';
+
+                    return `
+                        <div class="product-card">
+                            <img src="${imageUrl}" alt="${product.name}" class="product-image" style="height: 200px;" onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
+                            <div class="product-info">
+                                <h4 style="font-size: 1em; margin-bottom: 8px;">${product.name}</h4>
+                                <p style="font-size: 1.1em; font-weight: bold;">${formatPrice(product.price)}</p>
+                                <p style="font-size: 0.85em; color: var(--text-light);">Stock: ${product.stock_quantity}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading recent products:', error);
+            }
+        }
+
+        // Load recent products on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRecentProducts();
+        });
+    </script>
+
+    <script type="module" src="/auth/logout.js"></script>
+</body>
+</html>

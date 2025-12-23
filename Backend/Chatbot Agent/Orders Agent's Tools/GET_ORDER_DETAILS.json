@@ -1,0 +1,275 @@
+{
+  "name": "GET_ORDER_DETAILS",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "863dfaaf-94d0-4203-9746-dc406c9640f2",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Recursively searches for 'order_id' key or a UUID pattern in any string value.\n * - Handles deep nesting, arrays, flat objects, and JSON strings.\n */\n\nfunction extractOrderId(data) {\n    let foundOrderId = null;\n    \n    // Regex for UUID (v4 is common): xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx\n    // This pattern is general enough to catch the required format.\n    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n\n    function traverse(value) {\n        if (foundOrderId !== null) return;\n\n        // Case 1: Value check - If the value is a string and matches the UUID pattern\n        if (typeof value === 'string' && uuidRegex.test(value)) {\n            // Found a valid-looking UUID, use it as the order_id\n            foundOrderId = value;\n            return;\n        }\n\n        // Case 2: JSON string → try parsing\n        if (typeof value === 'string') {\n            try {\n                const parsed = JSON.parse(value);\n                traverse(parsed);\n            } catch (e) {\n                // Not JSON → ignore\n            }\n            return;\n        }\n\n        // Case 3: Array → traverse each item\n        if (Array.isArray(value)) {\n            for (const item of value) {\n                traverse(item);\n                if (foundOrderId !== null) return;\n            }\n            return;\n        }\n\n        // Case 4: Object → inspect keys\n        if (typeof value === 'object' && value !== null) {\n            for (const key of Object.keys(value)) {\n                \n                // Priority Check: Key named 'order_id'\n                if (key === 'order_id') {\n                    // Ensures that even if the value is not a UUID, we take it if the key is explicitly named\n                    foundOrderId = value[key];\n                    return;\n                }\n                \n                // Recurse to check the value of the current key\n                traverse(value[key]);\n                if (foundOrderId !== null) return;\n            }\n        }\n    }\n\n    traverse(data);\n    return foundOrderId;\n}\n\n// n8n input (works for single or multiple items)\nconst inputData = $input.all();\n\n// Try extracting from entire payload\nconst orderId = extractOrderId(inputData);\n\n// The output structure should match the number of input items in n8n for best practice, \n// but since the goal is to find ONE order_id from the whole payload, we return a single item.\n// If you need the output to be replicated for every input item, use items.map().\nreturn [\n    {\n        json: {\n            order_id: orderId\n        }\n    }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "af85b226-327c-4f8a-bf77-5b4ff15b57e5",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "order_items",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "order_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.order_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "28d1bf44-f18d-4559-9c1f-c6c79b03eec1",
+      "name": "Get Order Items",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "products",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        656,
+        -288
+      ],
+      "id": "aa309e75-3bf1-4d3c-ae63-52c4d36d3f59",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items\nconst items = $input.all();\n\n// If no items, return empty array\nif (!items.length) {\n  return [];\n}\n\n// Combine all items into a single array\nconst combinedData = items.map(item => item.json);\n\n// Return as a single item with the combined array\nreturn [\n  {\n    json: {\n      items: combinedData,\n      count: combinedData.length,\n      combined_at: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        128
+      ],
+      "id": "820bf576-8a57-4557-b04c-f39a4fa1ab48",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items\nconst items = $input.all();\n\n// If no items, return empty array\nif (!items.length) {\n  return [];\n}\n\n// Combine all items into a single array\nconst combinedData = items.map(item => item.json);\n\n// Return as a single item with the combined array\nreturn [\n  {\n    json: {\n      products: combinedData,\n      count: combinedData.length,\n      combined_at: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -288
+      ],
+      "id": "cd74e2fe-3577-47d2-ace0-374a84391570",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1328,
+        0
+      ],
+      "id": "7162a0f0-834d-4042-9bf2-3eb733012f0a",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// The 'items' variable holds an array of all input items.\n// We use 'map' to iterate over all input items and transform them.\nconst updatedItems = items.map(item => {\n    // 1. Access the main data object ('json' property of the n8n item)\n    const inputJson = item.json;\n\n    // Check if the 'products' array exists and is an array\n    if (inputJson && Array.isArray(inputJson.products)) {\n        \n        // 2. Iterate over the nested 'products' array and create a new array\n        const updatedProducts = inputJson.products.map(product => {\n            // Use object destructuring to safely copy all properties \n            // EXCEPT for 'search_keywords'\n            const { search_keywords, ...restOfProduct } = product;\n            \n            // 'restOfProduct' now contains all keys except 'search_keywords'\n            return restOfProduct;\n        });\n        \n        // 3. Create the new top-level object with the updated 'products' array\n        // Use the spread operator (...) to copy the other top-level keys ('count', 'combined_at')\n        const updatedJson = {\n            ...inputJson, // Copy existing top-level properties\n            products: updatedProducts // Replace the 'products' array with the new one\n        };\n\n        // 4. Return the new n8n item structure\n        return {\n            json: updatedJson\n        };\n    } else {\n        // If 'products' is missing or not an array, return the item as is\n        return item;\n    }\n});\n\n// The Code node expects the final result to be returned as an array of items.\nreturn updatedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        -288
+      ],
+      "id": "fc94856f-484f-4116-82e9-fda2e1b45b8e",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// The 'items' variable holds an array of all input items (in this case, one main item).\nconst mergedItems = items.flatMap(item => {\n    // 1. Access the main data object\n    const inputJson = item.json;\n\n    // Check if the necessary arrays exist\n    if (!Array.isArray(inputJson.products) || !Array.isArray(inputJson.items)) {\n        // Handle cases where the required arrays are missing\n        console.warn(\"Input is missing 'products' or 'items' array.\");\n        return [];\n    }\n\n    // 2. Create a lookup map for products for efficient merging (O(1) access time)\n    // The key of the map will be the product ID.\n    const productMap = new Map();\n    inputJson.products.forEach(product => {\n        // Store the product object using its 'id' as the key\n        productMap.set(product.id, product);\n    });\n\n    // 3. Iterate over the 'items' array and perform the merge\n    const combinedData = inputJson.items.map(itemDetail => {\n        // The 'itemDetail.product_id' is the key to look up in the map\n        const correspondingProduct = productMap.get(itemDetail.product_id);\n\n        if (correspondingProduct) {\n            // Merge the 'itemDetail' and 'correspondingProduct'\n            // We use spread operators to combine the properties. \n            // The 'itemDetail' properties will overwrite any duplicates from 'correspondingProduct' \n            // (e.g., 'created_at', 'updated_at'), which is generally desired for order items.\n            // Also, we can explicitly remove 'product_id' to simplify the output, \n            // as the product details are now included.\n\n            const { id: productId, ...productWithoutId } = correspondingProduct;\n\n            return {\n                // All item detail properties\n                ...itemDetail, \n                // All product properties (except the duplicate 'id' which is already in 'itemDetail' as 'product_id')\n                ...productWithoutId,\n                // Rename 'product_id' to 'product_reference_id' or simply keep it as is.\n                // For simplicity and clarity, we'll keep the combined properties.\n                // The 'id' in the output will be the item's 'id'.\n            };\n        }\n        \n        // If a product is not found, return the item detail as is\n        return itemDetail;\n    });\n\n    // 4. Return the new structure, where each merged object becomes a new n8n item\n    // 'flatMap' is used here to flatten the result if we had multiple input items.\n    return combinedData.map(data => ({ json: data }));\n});\n\nreturn mergedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1536,
+        0
+      ],
+      "id": "26093df2-d77e-4453-ab0b-c0e580a3ac1a",
+      "name": "Code in JavaScript4"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "c1963993-6f8a-4e1b-9c2c-e80951b6fbf5"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Get Order Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Order Items": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "aaddfb68-6fea-4970-acbc-0fc7107a6841",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "pI3LjpqH8mtt2jgu",
+  "tags": []
+}

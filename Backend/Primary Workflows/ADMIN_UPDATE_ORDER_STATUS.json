@@ -1,0 +1,312 @@
+{
+  "name": "ADMIN_UPDATE_ORDER_STATUS",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "admin-update-order-status",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -416,
+        96
+      ],
+      "id": "91b772e8-1f38-40d4-8a15-e8e5efac0442",
+      "name": "Webhook",
+      "webhookId": "1c8a78cf-5d56-4489-83da-467f491e3808"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": false,\n  \"message\": \"Invalid admin token\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        80,
+        368
+      ],
+      "id": "356304e6-67d2-423a-99ac-7c720cc2f1f2",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "orders",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.body.order_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $json.body.new_status }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        80,
+        -160
+      ],
+      "id": "19ee26b0-c449-469e-9fc5-f2a572b84440",
+      "name": "Changing Order Status",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "56ae4575-547c-478b-add3-317fed2bcde4",
+              "leftValue": "={{ $json.body.admin_token }}",
+              "rightValue": "saleem2208",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -192,
+        96
+      ],
+      "id": "70f41508-bd45-4e84-80b2-6f35f238a893",
+      "name": "Verifying Admin Token"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input is an array, so take the first item\nconst order = items[0].json;\n\n// Build final required response\nreturn [\n  {\n    json: {\n      success: true,\n      message: \"Order updated\",\n      updated_order: {\n        id: order.id,            // or parseInt(order.id) if you want numeric\n        status: order.status\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        -160
+      ],
+      "id": "e4b22746-2f4b-450d-861f-5199f21d0ca8",
+      "name": "Consolidating Final Output"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        496,
+        -160
+      ],
+      "id": "ab76eaba-b2e4-4066-9634-7c9929164632",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "content": "## Input Layer",
+        "height": 864,
+        "width": 224,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -288
+      ],
+      "id": "d5ca98a3-9f0d-40b4-8deb-aa26cf2d5206",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Admin's Token Validation",
+        "height": 864,
+        "width": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        -288
+      ],
+      "id": "470af067-7795-47ca-a8c1-c633085cb843",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Performing Intended Action, Consolidating Final Output, And Finally Sending Final Output To Frontend",
+        "height": 448,
+        "width": 720,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        -288
+      ],
+      "id": "9c0e384a-6172-4643-941f-abd082238ecc",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Denying Access Due To Admin's Token Mismatch",
+        "height": 416,
+        "width": 720,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        160
+      ],
+      "id": "05fcf56b-fb11-4b67-95f8-b7de1e94976c",
+      "name": "Sticky Note3"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "team4aimlprj.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "content-length": "120",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "en-US,en;q=0.9",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "223.123.7.255",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "PK",
+            "cf-ray": "9ab66382b03840c2-SIN",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "origin": "https://team4aimln8n-web.github.io",
+            "priority": "u=1, i",
+            "referer": "https://team4aimln8n-web.github.io/",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "223.123.7.255, 162.158.106.170",
+            "x-forwarded-host": "team4aimlprj.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-52-6c4f4684d5-dnzwc",
+            "x-is-trusted": "yes",
+            "x-real-ip": "223.123.7.255"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "admin_token": "saleem2208",
+            "order_id": "1ec79004-c70e-45c3-a07c-698816eec086",
+            "new_status": "confirmed",
+            "admin_notes": ""
+          },
+          "webhookUrl": "https://team4aimlprj.app.n8n.cloud/webhook/admin-update-order-status",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verifying Admin Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifying Admin Token": {
+      "main": [
+        [
+          {
+            "node": "Changing Order Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Changing Order Status": {
+      "main": [
+        [
+          {
+            "node": "Consolidating Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidating Final Output": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3d45cc90-e0aa-4911-8fbe-5a8544ff6869",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "aFmk49edh5u2TBJ0",
+  "tags": []
+}

@@ -1,0 +1,692 @@
+{
+  "name": "ADD_TO_CART",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "add-to-cart",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "170648de-4dd3-48de-a836-d4ecdf2735b8",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1792,
+        288
+      ],
+      "webhookId": "16fa7cb2-845e-4850-bead-ff401dec3ff0"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cart",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.body.user_id }}"
+            }
+          ]
+        }
+      },
+      "id": "52a5a277-9af5-452e-b78e-7a135ef1202b",
+      "name": "Check if User Cart Exists",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        288
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.cartFound }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "11a872dc-7053-425e-b9c0-0fb9402d675e",
+      "name": "IF Cart Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1120,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "cart",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Webhook Trigger').first().json.body.user_id }}"
+            }
+          ]
+        }
+      },
+      "id": "a320d96c-e8ea-41fe-92f6-a8a113250ff6",
+      "name": "Create New Cart",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        480
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "cart_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "user_id",
+              "value": "={{ $('Webhook Trigger').first().json.body.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "product_id",
+              "value": "={{ $('Webhook Trigger').first().json.body.product_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "quantity",
+              "value": "={{ $('Webhook Trigger').first().json.body.quantity }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a4dab8c8-4e27-4667-bc54-84a2d0e4d31e",
+      "name": "Unify Cart ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -896,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "cart_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cart_id",
+              "keyValue": "={{ $json.existing_cart.id }}"
+            },
+            {
+              "keyName": "product_id",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        }
+      },
+      "id": "9f85ddff-683b-4355-a00f-3696dc1b74f0",
+      "name": "Check if Product in Cart",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -672,
+        96
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.productExists }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c749176c-af86-4863-8b46-456c96ccb78e",
+      "name": "IF Product Already in Cart?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "cart_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.existing_item.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "quantity",
+              "fieldValue": "={{ $json.existing_item.quantity + $('Unify Cart ID').first().json.quantity }}"
+            }
+          ]
+        }
+      },
+      "id": "9582076c-f764-45b0-9462-739323c8d630",
+      "name": "Update Quantity",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "cart_items",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "cart_id",
+              "fieldValue": "={{ $('Unify Cart ID').item.json.existing_cart.id }}"
+            },
+            {
+              "fieldId": "product_id",
+              "fieldValue": "={{ $('Unify Cart ID').first().json.product_id }}"
+            },
+            {
+              "fieldId": "quantity",
+              "fieldValue": "={{ $('Unify Cart ID').first().json.quantity }}"
+            }
+          ]
+        }
+      },
+      "id": "b4315882-e439-4d1c-9173-4b11446cbeb7",
+      "name": "Insert New Cart Item",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"Added to cart\"\n}",
+        "options": {}
+      },
+      "id": "4d32ad5f-6cef-4c64-b11d-e86662c74a61",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "cart_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "user_id",
+              "value": "={{ $('Webhook Trigger').first().json.body.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "product_id",
+              "value": "={{ $('Webhook Trigger').first().json.body.product_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "quantity",
+              "value": "={{ $('Webhook Trigger').first().json.body.quantity }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "c55a9efb-fd99-4a83-91b9-c34ad7fcae4a",
+      "name": "Unify Cart ID1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -672,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "cart_items",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "cart_id",
+              "fieldValue": "={{ $('Unify Cart ID1').first().json.cart_id }}"
+            },
+            {
+              "fieldId": "product_id",
+              "fieldValue": "={{ $('Unify Cart ID1').first().json.product_id }}"
+            },
+            {
+              "fieldId": "quantity",
+              "fieldValue": "={{ $('Unify Cart ID1').first().json.quantity }}"
+            }
+          ]
+        }
+      },
+      "id": "b0641af9-5949-4529-85a3-38e735b1a357",
+      "name": "Insert New Cart Item1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        480
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"Added to cart\"\n}",
+        "options": {}
+      },
+      "id": "9044bb01-1082-4064-917b-1fb2af0449cb",
+      "name": "Respond to Webhook1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -208,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Read actual incoming items to this Code node\nconst items = $input.all();\n\n// Helper: check object is NOT empty\nfunction isValidObject(obj) {\n  return obj &&\n    typeof obj === 'object' &&\n    !Array.isArray(obj) &&\n    Object.keys(obj).length > 0;\n}\n\nlet rows = [];\n\n// Extract rows from actual input\nif (Array.isArray(items) && items.length > 0) {\n  rows = items.map(i => i.json);\n}\n\n// Core logic\nlet cartFound = false;\nlet existingCart = null;\n\nif (\n  Array.isArray(rows) &&\n  rows.length > 0 &&\n  isValidObject(rows[0])\n) {\n  cartFound = true;\n  existingCart = rows[0];\n}\n\n// Extract user_id safely\nconst userId =\n  existingCart?.user_id ||\n  $json?.user_id ||\n  null;\n\n// Guaranteed single output\nreturn [{\n  json: {\n    user_id: userId,\n    cartFound,\n    existing_cart: existingCart\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1344,
+        288
+      ],
+      "id": "d677094b-bf3e-44f4-93db-e49d320c3fb7",
+      "name": "Creating Criteria For Next Checkpoint"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Read the actual incoming items to this Code node\nconst items = $input.all();\n\n// Helper: check object is NOT empty\nfunction isValidObject(obj) {\n  return obj &&\n    typeof obj === 'object' &&\n    !Array.isArray(obj) &&\n    Object.keys(obj).length > 0;\n}\n\nlet rows = [];\n\n// Extract rows from real input\nif (Array.isArray(items) && items.length > 0) {\n  rows = items.map(i => i.json);\n}\n\n// Core logic\nlet productExists = false;\nlet existingItem = null;\n\nif (\n  Array.isArray(rows) &&\n  rows.length > 0 &&\n  isValidObject(rows[0])\n) {\n  productExists = true;\n  existingItem = rows[0];\n}\n\n// Try to keep IDs flowing through workflow\nconst userId =\n  $json?.user_id ||\n  existingItem?.user_id ||\n  null;\n\nconst productId =\n  $json?.product_id ||\n  existingItem?.product_id ||\n  null;\n\nconst requestedQty =\n  $json?.quantity ||\n  1;\n\n// Guaranteed single output\nreturn [{\n  json: {\n    user_id: userId,\n    product_id: productId,\n    requested_quantity: requestedQty,\n    productExists,\n    existing_item: existingItem\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        96
+      ],
+      "id": "b012445e-13de-4796-8f9a-f473c11f251c",
+      "name": "Creating Criteria For Next Checkpoint1"
+    },
+    {
+      "parameters": {
+        "content": "## Preliminary Cart Existence Verification",
+        "height": 768,
+        "width": 960
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1904,
+        -48
+      ],
+      "id": "14085de2-a860-4893-9f5b-c79f0545727b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Branch Responsible For Adding Item(s) To an Existing Cart",
+        "height": 400,
+        "width": 1392,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -944,
+        -48
+      ],
+      "id": "6788e9f8-1967-40c8-b5ef-2637d2aa284e",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Branch Responsible For Creating Cart and Then Adding Item(s) To It.  ",
+        "height": 384,
+        "width": 1392,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -944,
+        336
+      ],
+      "id": "c1c4e383-df35-403c-86a5-dff706441025",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {
+    "Webhook Trigger": [
+      {
+        "json": {
+          "headers": {
+            "host": "team4aiml.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "content-length": "115",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "en-US,en;q=0.9",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "223.123.15.152",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "PK",
+            "cf-ray": "9a9b8a797727fede-SIN",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "origin": "https://team4aimln8n-web.github.io",
+            "priority": "u=1, i",
+            "referer": "https://team4aimln8n-web.github.io/",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "223.123.15.152, 104.23.175.159",
+            "x-forwarded-host": "team4aiml.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-77-7df8c744bc-s67wc",
+            "x-is-trusted": "yes",
+            "x-real-ip": "223.123.15.152"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "user_id": "dbab34a6-c0ec-45c7-a503-8accd164a289",
+            "product_id": "37d44982-6101-4ddd-a2d8-363c37c0a73b",
+            "quantity": 1
+          },
+          "webhookUrl": "https://team4aiml.app.n8n.cloud/webhook/add-to-cart",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check if User Cart Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if User Cart Exists": {
+      "main": [
+        [
+          {
+            "node": "Creating Criteria For Next Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Cart Exists?": {
+      "main": [
+        [
+          {
+            "node": "Unify Cart ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create New Cart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create New Cart": {
+      "main": [
+        [
+          {
+            "node": "Unify Cart ID1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unify Cart ID": {
+      "main": [
+        [
+          {
+            "node": "Check if Product in Cart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Product in Cart": {
+      "main": [
+        [
+          {
+            "node": "Creating Criteria For Next Checkpoint1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Product Already in Cart?": {
+      "main": [
+        [
+          {
+            "node": "Update Quantity",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert New Cart Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Quantity": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert New Cart Item": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unify Cart ID1": {
+      "main": [
+        [
+          {
+            "node": "Insert New Cart Item1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert New Cart Item1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Creating Criteria For Next Checkpoint": {
+      "main": [
+        [
+          {
+            "node": "IF Cart Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Creating Criteria For Next Checkpoint1": {
+      "main": [
+        [
+          {
+            "node": "IF Product Already in Cart?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6864870a-808e-4924-970f-90e0decfef87",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "u7dJL7ecHyeTC67L",
+  "tags": []
+}

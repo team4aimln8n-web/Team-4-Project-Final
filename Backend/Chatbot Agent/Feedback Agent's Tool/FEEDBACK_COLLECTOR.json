@@ -1,0 +1,151 @@
+{
+  "name": "FEEDBACK_COLLECTOR",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3f4b0fcb-bed6-43b4-874b-3b7b6c6c293a",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const result = {\n    user_id: null,\n    feedback: null,\n    sentiment_analysis: null\n  };\n\n  // 1. Define detection patterns\n  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n  const sentiments = ['positive', 'negative', 'neutral'];\n\n  function inspectValue(val) {\n    if (typeof val !== 'string') return;\n\n    const cleanVal = val.trim();\n\n    // Check for User ID (UUID format)\n    if (uuidRegex.test(cleanVal)) {\n      result.user_id = cleanVal;\n    } \n    // Check for Sentiment\n    else if (sentiments.includes(cleanVal.toLowerCase())) {\n      result.sentiment_analysis = cleanVal.charAt(0).toUpperCase() + cleanVal.slice(1).toLowerCase();\n    } \n    // Check for Feedback (If it's a longer string and not JSON)\n    else if (cleanVal.length > 5 && !cleanVal.startsWith('{')) {\n      // We prioritize longer text as feedback\n      result.feedback = cleanVal;\n    }\n  }\n\n  function findValues(obj) {\n    if (!obj || typeof obj !== 'object') return;\n\n    for (const key in obj) {\n      const value = obj[key];\n\n      // If value is a string, check if it's a nested JSON string\n      if (typeof value === 'string' && value.trim().startsWith('{')) {\n        try {\n          findValues(JSON.parse(value));\n        } catch (e) {\n          inspectValue(value);\n        }\n      } \n      // If it's a standard object, recurse\n      else if (typeof value === 'object' && value !== null) {\n        findValues(value);\n      } \n      // Otherwise, inspect the primitive value\n      else {\n        inspectValue(value);\n      }\n    }\n  }\n\n  findValues(item.json);\n\n  return { json: result };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "017686be-a735-4da0-9a14-9318a6484fcb",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "tableId": "chatbot_feedback",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.user_id }}"
+            },
+            {
+              "fieldId": "feedback",
+              "fieldValue": "={{ $json.feedback }}"
+            },
+            {
+              "fieldId": "sentiment_analysis",
+              "fieldValue": "={{ $json.sentiment_analysis }}"
+            },
+            {
+              "fieldId": "created_at",
+              "fieldValue": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "f3150131-685f-4670-924d-c848d760d4fe",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "af43473a-1990-4042-9414-834c6869d7d3",
+              "name": "message: ",
+              "value": "=Feedback has been successfully recorded under the ID {{ $json.id }}. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "2eee0fb1-0cac-4e22-8828-558d2b7553bb",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "{\"user_id\":\"ec1695ee-233c-41be-b3e3-e39eeaadc0f3\",\"final_feedback_text\":\"I just visited this store. I just loved it.\",\"sentiment\":\"Positive\"}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "282210a9-97fb-4a38-bd73-5118262f9e0c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "LbhDdO9A2yxYLfMG",
+  "tags": []
+}

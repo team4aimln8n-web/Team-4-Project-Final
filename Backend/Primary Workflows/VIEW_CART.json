@@ -1,0 +1,454 @@
+{
+  "name": "VIEW_CART",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "view-cart",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "03356834-60f2-4e58-bd39-2a767b856ad3",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -672,
+        448
+      ],
+      "webhookId": "d4527b38-9461-425d-bb16-fa59b11d7a2f"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "cart",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "keyValue": "={{ $json.query.user_id }}"
+            }
+          ]
+        }
+      },
+      "id": "597abc06-f577-4b3d-a08c-fb70697c7d32",
+      "name": "Get User Cart",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        448
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cart_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cart_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
+      "id": "eaf6bfc3-d846-4a8e-97b4-0f82b9f733d8",
+      "name": "Get Cart Items",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        448
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "products",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        }
+      },
+      "id": "caf36a64-20c7-4754-bfc9-116a21575337",
+      "name": "Get Product Details",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        80
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const cartItems = $input.all();\nconst cartId = $('Get User Cart').first().json.id;\n\nconst items = cartItems.map(item => {\n  const quantity = item.json.quantity;\n  const price = item.json.price;\n  const subtotal = price * quantity;\n  \n  return {\n    cart_item_id: item.json.id,       // ✅ ADD THIS\n    product_id: item.json.product_id,\n    name: item.json.name,\n    price: price,\n    quantity: quantity,\n    subtotal: subtotal,\n    image_url: item.json.image_url\n  };\n});\n\nconst total = items.reduce((sum, item) => sum + item.subtotal, 0);\n\nreturn [{\n  json: {\n    cart_id: cartId,\n    items: items,\n    total: total\n  }\n}];\n"
+      },
+      "id": "e43596d5-c030-4ea2-8264-a5220f73a350",
+      "name": "Calculate Totals and Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "ad741bc3-abae-4e46-b55f-df02625d8625",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        896,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "product_images",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "product_id",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        272
+      ],
+      "id": "b54f0735-f7a0-4c95-9263-fefaf748161f",
+      "name": "Get Product's Image(s)",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        384
+      ],
+      "id": "424e0530-1fc0-421c-a262-f34238fa4870",
+      "name": "Combining Info About Items, Prodcuts, and Images"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c5417aea-b26b-4cdd-8d7d-80f72d25be89",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -16,
+        448
+      ],
+      "id": "a6e31f01-7d1c-4517-8691-376fb385b57e",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"items\": []\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        704
+      ],
+      "id": "e3c1252a-9479-43b5-9b8b-9d0c492cfa86",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "content": "## Fetching Cart Item(s)",
+        "height": 912,
+        "width": 688
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        -64
+      ],
+      "id": "207a7a90-d858-47bb-9491-c3e2fa4fdfbc",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Navigating Based on Cart Item(s) Exists Or Not",
+        "height": 912,
+        "width": 192,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        -64
+      ],
+      "id": "e564e0cc-a1e0-475a-935a-a97cd7ffc867",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Fetching Products and Their Images For Cart View",
+        "height": 656,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        144,
+        -64
+      ],
+      "id": "ed86eb5e-49a9-4e04-8e41-31266762e5b3",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Final Response For Empty Cart",
+        "height": 256,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        144,
+        592
+      ],
+      "id": "72af1f04-35ad-4b3b-9eb0-7045e3fe17c4",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Consolidating Final Response For Non-Empty Cart's View",
+        "height": 912,
+        "width": 704,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -64
+      ],
+      "id": "48f42dc8-36ed-46a4-b21e-048bde2d71df",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "localhost:5678",
+            "connection": "keep-alive",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "null",
+            "sec-fetch-site": "cross-site",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "params": {},
+          "query": {
+            "user_id": "ec1695ee-233c-41be-b3e3-e39eeaadc0f3"
+          },
+          "body": {},
+          "webhookUrl": "http://localhost:5678/webhook/view-cart",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get User Cart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Cart": {
+      "main": [
+        [
+          {
+            "node": "Get Cart Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Cart Items": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Product Details": {
+      "main": [
+        [
+          {
+            "node": "Combining Info About Items, Prodcuts, and Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Totals and Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Product's Image(s)": {
+      "main": [
+        [
+          {
+            "node": "Combining Info About Items, Prodcuts, and Images",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Combining Info About Items, Prodcuts, and Images": {
+      "main": [
+        [
+          {
+            "node": "Calculate Totals and Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get Product Details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Product's Image(s)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Combining Info About Items, Prodcuts, and Images",
+            "type": "main",
+            "index": 2
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7a5ca734-fdc4-441a-a559-37ca44bd9356",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "sE7gTpHVZnI0ed3I",
+  "tags": []
+}

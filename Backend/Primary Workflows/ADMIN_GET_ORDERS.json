@@ -1,0 +1,473 @@
+{
+  "name": "ADMIN_GET_ORDERS",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "admin-get-all-orders",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -960,
+        480
+      ],
+      "id": "5bec53cc-2661-4220-a3b2-a966c3bdedba",
+      "name": "Webhook",
+      "webhookId": "d019a8b6-5184-43b4-8eed-c2ffeadbb712"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": false,\n  \"message\": \"Invalid admin password\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -528,
+        640
+      ],
+      "id": "41a438fb-897c-45b6-9cc9-d6f33d760b7f",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d12e668f-3d31-4b3a-9dda-1e6d9e8c2000",
+              "leftValue": "={{ $json.query.admin_token }}",
+              "rightValue": "saleem2208",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -752,
+        480
+      ],
+      "id": "06834c52-1562-419e-9250-37090bcb9503",
+      "name": "Verifying Admin Token"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "orders",
+        "returnAll": true,
+        "filterType": "none"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        320
+      ],
+      "id": "5fe50a00-feed-4862-abfd-467db70a8741",
+      "name": "Fetching Orders",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "order_items",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "order_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        176
+      ],
+      "id": "d3f04c26-0892-4a3b-bb89-43e4e5820e87",
+      "name": "Fetching Order Items",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1120,
+        304
+      ],
+      "id": "dbfedf7d-c57e-4003-9d7e-ea230dbf687f",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "products",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5cb02563-0af5-480a-bf19-83a437f66419",
+      "name": "Fetching Product Details",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        256,
+        160
+      ],
+      "id": "221657f3-b6e8-4665-8ca3-e5c36da660bf",
+      "name": "Merging Items and Products' Details"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get items coming into the Code node\nconst input = items.map(i => i.json);\n\n// Create a map grouped by order_id\nconst grouped = {};\n\nfor (const row of input) {\n  const oid = row.order_id;\n\n  if (!grouped[oid]) {\n    grouped[oid] = {\n      order_id: oid,\n      items: []\n    };\n  }\n\n  // Push item details (remove order_id duplication inside items)\n  grouped[oid].items.push({\n    product_id: row.product_id,\n    name: row.name,\n    description: row.description,\n    price_at_purchase: row.price_at_purchase,\n    quantity: row.quantity,\n    category: row.category,\n    stock_quantity: row.stock_quantity\n  });\n}\n\n// Convert the grouped object to n8n output format\nreturn Object.values(grouped).map(order => ({\n  json: order\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        160
+      ],
+      "id": "674c3dd3-a920-4943-8bca-4ae6e35df7f7",
+      "name": "Combining Items With Same Order ID"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        704,
+        304
+      ],
+      "id": "3185bf7d-435c-4ec6-a32b-e9983d298227",
+      "name": "Merging Orders And Products' Info"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = items.map(i => i.json);\n\nconst transformedOrders = data.map(order => {\n    return {\n        id: order.id,\n        order_number: order.order_number,\n        status: order.status,\n        total_amount: order.total_amount,\n        created_at: order.created_at,\n        items: order.items.map(item => ({\n            product_name: item.name,\n            price_at_purchase: item.price_at_purchase,\n            quantity: item.quantity\n        })),\n        phone_number: order.phone_number,\n        payment_method: order.payment_method,\n        shipping_address: {\n            full_name: order.shipping_address.full_name,\n            city: order.shipping_address.city\n        }\n    };\n});\n\nreturn [\n  {\n    json: {\n      success: true,\n      orders: transformedOrders\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        304
+      ],
+      "id": "5be66e0d-0f3c-4acb-99e0-b577519e2acc",
+      "name": "Consolidating Final Response"
+    },
+    {
+      "parameters": {
+        "content": "## Input Layer",
+        "height": 912,
+        "width": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1024,
+        -80
+      ],
+      "id": "a8f76e27-7869-4c75-b404-9c42ebb15ba0",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Admin Token's Validation",
+        "height": 912,
+        "width": 224,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        -80
+      ],
+      "id": "f32e7fa7-e70c-4624-a4cf-6bc3d915cb57",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Collecting Relevant Info Of Orders",
+        "height": 624,
+        "width": 1440,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        -80
+      ],
+      "id": "2b44e4a9-c6ea-425c-962e-0683ee81a5d5",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Rejecting Sharing Orders' Details Due To Admin's Token Mismatch",
+        "height": 288,
+        "width": 1440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        544
+      ],
+      "id": "c4ab11fd-5d05-4257-9530-b8f815cb072e",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Refining And Then Sending Final Output To Frontend",
+        "height": 912,
+        "width": 448,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        864,
+        -80
+      ],
+      "id": "f24dd25b-48e8-404b-bf1a-6353c3a89734",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "team4aimlprj.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "en-US,en;q=0.9",
+            "cache-control": "no-cache",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "223.123.7.255",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "PK",
+            "cf-ray": "9ab5063e20f2c51a-FRA",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "origin": "http://127.0.0.1:5500",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://127.0.0.1:5500/",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "223.123.7.255, 172.71.172.133",
+            "x-forwarded-host": "team4aimlprj.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-52-6c4f4684d5-swjxv",
+            "x-is-trusted": "yes",
+            "x-real-ip": "223.123.7.255"
+          },
+          "params": {},
+          "query": {
+            "admin_token": "saleem2208"
+          },
+          "body": {},
+          "webhookUrl": "https://team4aimlprj.app.n8n.cloud/webhook/admin-get-all-orders",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verifying Admin Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifying Admin Token": {
+      "main": [
+        [
+          {
+            "node": "Fetching Orders",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching Orders": {
+      "main": [
+        [
+          {
+            "node": "Fetching Order Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merging Orders And Products' Info",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Fetching Order Items": {
+      "main": [
+        [
+          {
+            "node": "Fetching Product Details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merging Items and Products' Details",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Fetching Product Details": {
+      "main": [
+        [
+          {
+            "node": "Merging Items and Products' Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merging Items and Products' Details": {
+      "main": [
+        [
+          {
+            "node": "Combining Items With Same Order ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combining Items With Same Order ID": {
+      "main": [
+        [
+          {
+            "node": "Merging Orders And Products' Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merging Orders And Products' Info": {
+      "main": [
+        [
+          {
+            "node": "Consolidating Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidating Final Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "96d8ccd2-28fb-4f44-9790-3eedd128ef07",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "hiPiM8Okt8ajo7dW",
+  "tags": []
+}

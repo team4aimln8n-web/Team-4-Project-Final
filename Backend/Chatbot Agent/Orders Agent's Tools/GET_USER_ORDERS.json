@@ -1,0 +1,109 @@
+{
+  "name": "GET_USER_ORDERS",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -416,
+        0
+      ],
+      "id": "2985d318-d2d8-4086-a4ca-44dd5b162951",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Recursively searches for `user_id` in any structure:\n * - Handles deep nesting\n * - Handles arrays\n * - Handles flat objects\n * - Handles JSON strings\n * - Treats a lone UUID-like string as user_id\n */\n\nfunction extractUserId(data) {\n  let foundUserId = null;\n\n  // UUID regex pattern (v4-style, general enough)\n  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n\n  function traverse(value) {\n    if (foundUserId !== null) return;\n\n    // Case 1: JSON string → try parsing\n    if (typeof value === 'string') {\n      // Check if string looks like a UUID\n      if (uuidRegex.test(value)) {\n        foundUserId = value;\n        return;\n      }\n\n      try {\n        const parsed = JSON.parse(value);\n        traverse(parsed);\n      } catch (e) {\n        // Not JSON → ignore\n      }\n      return;\n    }\n\n    // Case 2: Array → traverse each item\n    if (Array.isArray(value)) {\n      for (const item of value) {\n        traverse(item);\n        if (foundUserId !== null) return;\n      }\n      return;\n    }\n\n    // Case 3: Object → inspect keys\n    if (typeof value === 'object' && value !== null) {\n      for (const key of Object.keys(value)) {\n        if (key === 'user_id') {\n          foundUserId = value[key];\n          return;\n        }\n\n        // If key is \"query\" and value is a UUID-like string, treat as user_id\n        if (key === 'query' && typeof value[key] === 'string' && uuidRegex.test(value[key])) {\n          foundUserId = value[key];\n          return;\n        }\n\n        traverse(value[key]);\n        if (foundUserId !== null) return;\n      }\n    }\n  }\n\n  traverse(data);\n  return foundUserId;\n}\n\n// n8n input (works for single or multiple items)\nconst inputData = $input.all();\n\n// Try extracting from entire payload\nconst userId = extractUserId(inputData);\n\nreturn [\n  {\n    user_id: userId\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        0
+      ],
+      "id": "23e143e3-0451-48d4-a529-4f0cbe2b0080",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "orders",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.user_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "59017108-3b16-40c5-9358-424815f67676",
+      "name": "Get many rows",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "ec1695ee-233c-41be-b3e3-e39eeaadc0f3"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2055e4be-5e73-4eb6-b6af-db7ff64e13d0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "i67owyYVQSDLIgQQ",
+  "tags": []
+}

@@ -1,0 +1,360 @@
+{
+  "name": "COST_ESTIMATOR",
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -400,
+        416
+      ],
+      "id": "7395eb95-ca57-4367-8374-54817408df47",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "3BvOeQkSoHBfE5LN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cost-estimate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -336,
+        128
+      ],
+      "id": "28672378-ecf1-493f-8344-74a74d54df42",
+      "name": "Webhook",
+      "webhookId": "0b54d082-7cab-4dd6-ac40-98f7d5231a86"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=**User's Supabase Preferences**\n\n1. Monthly Active Users: {{ $json.body.supabase.monthly_active_users }}\n2. Expected Database Storage Needed (in GB): {{ $json.body.supabase.db_storage_gb }}\n3. Expected File Storage Needed (in GB): {{ $json.body.supabase.file_storage_gb }}\n4. API Requests per Month: {{ $json.body.supabase.api_requests }}\n5. Edge Function Calls per Month: {{ $json.body.supabase.edge_function_calls }}\n6. Database Size Growth per Month (in MB): {{ $json.body.supabase.db_growth_mb }}\n7. Realtime Usage / Concurrent Connections: {{ $json.body.supabase.realtime_connections }}\n8. Authentication Sign-Ins per Month: {{ $json.body.supabase.auth_signins }}\n9. Storage File Uploads per Month: {{ $json.body.supabase.file_uploads }}\n10. Outbound Data Transfer per Month (GB): {{ $json.body.supabase.data_transfer_gb }}\n11. Do you require Supabase Enterprise Features: {{ $json.body.supabase.enterprise_features }}\n\n**User's n8n Preferences**\n\n1. Estimated Total Workflow Executions per Month: {{ $json.body.n8n.total_executions }}\n2. Expected Peak Executions (Concurrency): {{ $json.body.n8n.peak_concurrency }}\n3. Hosting Option: {{ $json.body.n8n.hosting_option }}\n\n**User's Agent's Usage Preferences**\n1. No. of Executions Per Day: {{ $json.body.ai.executions_per_day }}",
+        "options": {
+          "systemMessage": "You are an expert cost estimation assistant for SaaS projects. Your task is to calculate the monthly expenses for a user’s e-commerce project based on their submitted preferences for Supabase and n8n.\n\nInstructions:\n\nInput: You will receive a JSON or structured data object containing the user’s preferences collected from the cost estimation form. This includes Supabase usage fields (MAUs, database size, file storage, API calls, Edge Functions, Realtime usage, etc.) and n8n workflow usage fields (total workflow executions, peak concurrency, hosting preference, enterprise features, etc.).\n\nPricing Reference:\n\nFor Supabase, fetch the latest pricing structure using SUPABASE_PRICING_TOOL.\n\nFor n8n, fetch the latest pricing structure using N8N_PRICING_TOOL.\n\nIf either pricing tool returns values in Euros (€), you must use the CURRENCY_CONVERSION_TOOL to fetch the current EUR → USD exchange rate, and convert all amounts to USD ($) before any calculations.\n\nLogic:\n\nCompare the user’s preferences with the pricing limits of each available plan.\n\nDetermine the minimum suitable plan that accommodates their usage for both Supabase and n8n.\n\nCalculate the monthly cost for Supabase based on the selected plan.\n\nCalculate the monthly cost for n8n based on the selected plan.\n\nIf any cost is returned in Euros, you must:\n\nQuery CURRENCY_CONVERSION_TOOL to get the latest EUR → USD exchange rate.\n\nConvert that Euro amount to USD.\n\nSum both USD-converted costs to get the total estimated monthly cost.\n\nOPENAI_COST TOOL\nThis tool is responsible for calculating cost of LLMs being used in AI agents. \n\nHow to Use OPENAI_COST Tool:\nSend No. of executions per day for agents that are specified by user. \n\nWait for its output. Once Monthly cost is received, add it to other costs and calculate final monthly cost. \nOutput Format:\nYour response must be a single HTML block only. It must contain:\n\nA fully formatted HTML table (with inline styling) containing exactly three columns:\n\nName (Supabase / n8n / Total)\n\nPlan Name\n\nMonthly Expenses (in USD)\n\nThe first row must contain table headers.\n\nThe table must contain exactly four rows:\n\nRow 1: Header row\n\nRow 2: Supabase\n\nRow 3: n8n\n\nRow 4: OpenAI Cost\n\nRow 4: A final row where the first two cells are merged into one and contain centered text: “TOTAL MONTHLY COST”, and the last cell contains the total monthly expenses.\n\nBelow the table, include the disclaimer:\n\"⚠️ Note: These expenses do NOT include front-end hosting costs, as those are variable and depend on the provider and traffic.\"\n\nHTML Requirements:\n\nThe table must use inline CSS styling for borders, padding, alignment, and spacing to ensure proper display in any environment.\n\nUse <table>, <tr>, <td>, <th> with inline styles.\n\nThe merged cell in the last row must use colspan=\"2\" and centered text.\n\nWrap everything in a parent <div>.\n\nDo NOT include any text outside the HTML block.\n\nAll monetary values must be in USD ($) and rounded to two decimal places if needed.\n\nCurrency Requirement:\n\nAll output must be in USD only, regardless of the currency returned by pricing tools.\n\nYou must use CURRENCY_CONVERSION_TOOL if any pricing data is not already in USD.\n\nNever assume or invent exchange rates — always fetch them using the tool.\n\nRestrictions:\n\nDo not output JSON or code blocks; only raw HTML.\n\nDo not include extra explanations, suggestions, or comments.\n\nFollow these instructions strictly. Your goal is to provide a clean, concise HTML table with a complete monthly cost estimate for the customer.\n\n⚠️ It is absolutely mandatory that you use the designated pricing tools to determine costs.\nDo not make any assumptions or guesses. Do not rely on prior knowledge or any pre-existing data.\nFor every calculation, you must query the appropriate pricing tool to fetch up-to-date, authoritative pricing information.\nIf the tool is unavailable or does not return data, you must respond indicating that the cost cannot be determined.\nIgnoring this rule is strictly prohibited."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -64,
+        128
+      ],
+      "id": "8144e288-ddd7-4d92-b61b-e11929856559",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        576,
+        128
+      ],
+      "id": "95485311-88e3-449f-94a5-30e41be8ee04",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  html: items[0].json.output\n}]\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        128
+      ],
+      "id": "ad183a9b-c6e0-42bc-bb32-1405f39a1732",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "description": "This tool provides the current official pricing structure for n8n, including cloud-hosted plan tiers, execution limits, concurrency limits, and enterprise features.  \nIt allows you to calculate the monthly cost of workflows based on total workflow executions, peak concurrency, hosting preference, and optional enterprise features.  \nAlways use this tool to determine the correct n8n plan and monthly cost. Never estimate or guess.",
+        "workflowId": {
+          "__rl": true,
+          "value": "VXSPeSdeFyc4ReQa",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/VXSPeSdeFyc4ReQa",
+          "cachedResultName": "COST_ESTIMATOR_HELPER_FOR_n8n"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        416
+      ],
+      "id": "26372ac3-d434-4030-9142-bc114e148b75",
+      "name": "N8N_PRICING_TOOL"
+    },
+    {
+      "parameters": {
+        "description": "This tool provides the latest official pricing information for Supabase services, including all available plans, their limits, and associated monthly costs.  \nIt allows you to compare a user’s usage (e.g., monthly active users, database storage, API requests, Edge Functions, Realtime connections, and storage uploads) against the available plans and determine the minimum plan that satisfies the user’s requirements.  \nAlways fetch data from this tool; do not make assumptions.",
+        "workflowId": {
+          "__rl": true,
+          "value": "sEfJpQvSBMjawmIS",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/sEfJpQvSBMjawmIS",
+          "cachedResultName": "COST_ESTIMATOR_HELPER_FOR_SUPABASE"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        416
+      ],
+      "id": "7a62809d-f868-4d99-b93b-1a323e7b4423",
+      "name": "SUPABASE_PRICING_TOOL"
+    },
+    {
+      "parameters": {
+        "toolDescription": "This tool provides the current exchange rate from Euros (EUR) to US Dollars (USD). Whenever pricing information from Supabase or n8n is returned in Euros, the AI agent must call this tool to retrieve the live EUR→USD rate and convert all Euro-based amounts into USD. All final outputs must always be displayed in US Dollars only.",
+        "url": "https://v6.exchangerate-api.com/v6/d316f8d24f02f4e1884e4a42/latest/USD",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        -192,
+        416
+      ],
+      "id": "621b5acd-1957-437e-8335-eafda12bbd18",
+      "name": "CURRENCY_CONVERSION_TOOL"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to calculate the cost of OPENAI's LLM models that are being used in AI Agents. You MUST Send it the per day no. of executions. ",
+        "workflowId": {
+          "__rl": true,
+          "value": "vCXzeZhNHHzFvXZA",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/vCXzeZhNHHzFvXZA",
+          "cachedResultName": "OPENAI_COST"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        416
+      ],
+      "id": "32446449-a29e-4a7f-b1e9-9982bc99edf3",
+      "name": "OPENAI_COST"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "team4aimlprj.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "content-length": "435",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "en-US,en;q=0.9",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "2402:ad80:1b0:a9cc:4c2d:8a14:3261:7eef",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "PK",
+            "cf-ray": "9afca87fe1b2a3d3-SIN",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "origin": "null",
+            "priority": "u=1, i",
+            "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "2402:ad80:1b0:a9cc:4c2d:8a14:3261:7eef, 172.69.165.40",
+            "x-forwarded-host": "team4aimlprj.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-52-6c4f4684d5-dnzwc",
+            "x-is-trusted": "yes",
+            "x-real-ip": "2402:ad80:1b0:a9cc:4c2d:8a14:3261:7eef"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "supabase": {
+              "monthly_active_users": "23000",
+              "db_storage_gb": "1",
+              "file_storage_gb": "1",
+              "api_requests": "39000",
+              "edge_function_calls": "20",
+              "db_growth_mb": "100",
+              "realtime_connections": "25",
+              "auth_signins": "2400",
+              "file_uploads": "50",
+              "data_transfer_gb": "1",
+              "enterprise_features": "no"
+            },
+            "n8n": {
+              "total_executions": "1700",
+              "peak_concurrency": "10",
+              "hosting_option": "cloud"
+            },
+            "ai": {
+              "executions_per_day": "1300"
+            },
+            "timestamp": "2025-12-18T06:38:34.867Z"
+          },
+          "webhookUrl": "https://team4aimlprj.app.n8n.cloud/webhook/cost-estimate",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "N8N_PRICING_TOOL": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SUPABASE_PRICING_TOOL": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CURRENCY_CONVERSION_TOOL": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OPENAI_COST": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c7dc09a6-284c-4480-a0f1-10a08398f253",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5d40c27b713be158222408a4aa45fba1a1b1db618365b28674f30a8af93787b2"
+  },
+  "id": "vYKCdeAIzYNkpJ95",
+  "tags": []
+}

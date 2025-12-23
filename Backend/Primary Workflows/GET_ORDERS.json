@@ -1,0 +1,381 @@
+{
+  "name": "GET_ORDERS",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "get-user-orders",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1852af60-e363-4718-ab1f-e9f856d259b1",
+      "name": "Webhook - Get User Orders",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -704,
+        304
+      ],
+      "webhookId": "8ed77cdd-6caa-451b-8e7d-5d10631db7e0"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "orders",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.query.user_id }}"
+            }
+          ]
+        }
+      },
+      "id": "6b61ed49-dbf2-4243-811e-8b94600ac01e",
+      "name": "Fetch Orders",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        304
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "order_items",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "order_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
+      "id": "220deb7c-509d-4666-ac38-5df48e895181",
+      "name": "Fetch Order Items",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        160
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "products",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        }
+      },
+      "id": "dbaedd53-f8ea-4cfd-9a9b-07904ff3de6a",
+      "name": "Fetch Product Details",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "32e372af-6014-4560-aabe-c56e0b400477",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1088,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        208,
+        144
+      ],
+      "id": "2f1ec36f-23e0-4880-aca7-288380392cb5",
+      "name": "Combining Items and Products information"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all incoming items\nconst items = $input.all();\n\n// Object to group by order_id\nconst grouped = {};\n\n// Loop through items and group them\nfor (const item of items) {\n  const data = item.json;\n  const orderId = data.order_id;\n\n  if (!grouped[orderId]) {\n    grouped[orderId] = {\n      order_id: orderId,\n      products: []\n    };\n  }\n\n  grouped[orderId].products.push({\n    id: data.id,\n    product_id: data.product_id,\n    name: data.name,\n    description: data.description,\n    category: data.category,\n    price: data.price,\n    quantity: data.quantity,\n    price_at_purchase: data.price_at_purchase\n  });\n}\n\n// Convert grouped object to array format for n8n\nreturn Object.values(grouped).map(order => ({ json: order }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        144
+      ],
+      "id": "aebd8517-d062-4398-bb05-0e497011efae",
+      "name": "Refining Previous Node's Information"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        640,
+        288
+      ],
+      "id": "4083aafa-e666-48c8-8c19-3d1df8f3bca4",
+      "name": "Combining Orders, Items, and Products's Information"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Transform all incoming items\nconst output = items.flatMap(item => {\n  const order = item.json; // current order\n  \n  return [{\n    json: {\n      id: order.id,\n      order_number: order.order_number,\n      user_id: order.user_id,\n      total_amount: order.total_amount,\n      status: order.status,\n      payment_method: order.payment_method,\n      shipping_address: order.shipping_address,\n      phone_number: order.phone_number,\n      notes: order.notes,\n      created_at: order.created_at,\n      updated_at: order.updated_at,\n      items: (order.products || []).map(p => ({\n        id: p.id,\n        product_id: p.product_id,\n        product_name: p.name,\n        name: p.name,\n        quantity: p.quantity,\n        price_at_purchase: p.price_at_purchase,\n        price: p.price\n      }))\n    }\n  }];\n});\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        288
+      ],
+      "id": "d224b786-de66-430a-8db4-cdf1306a5027",
+      "name": "Consolidating Final Output"
+    },
+    {
+      "parameters": {
+        "content": "## Receiving Input From Frontend",
+        "height": 752
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        -112
+      ],
+      "id": "c141997a-d2f4-4f6e-809b-02cc9683e420",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Consolidating Info Of Orders, Order Items, and Product Details",
+        "height": 752,
+        "width": 1328,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -528,
+        -112
+      ],
+      "id": "90b6428d-bffb-43ab-bdaa-aa6c8bc1353a",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Refining and Then Sending Final Output To Frontend",
+        "height": 752,
+        "width": 480,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        -112
+      ],
+      "id": "36a93903-4d8d-46aa-af93-2beffe23c2c0",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {
+    "Webhook - Get User Orders": [
+      {
+        "json": {
+          "headers": {
+            "host": "team4aiml.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "en-US,en;q=0.9",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "223.123.21.251",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "PK",
+            "cf-ray": "9aa3a41ce7038210-SIN",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "if-none-match": "W/\"3af-ybsc7g6c3UNEF9bX+5ePFmIEDLc\"",
+            "origin": "null",
+            "priority": "u=1, i",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "223.123.21.251, 172.71.82.16",
+            "x-forwarded-host": "team4aiml.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-77-7df8c744bc-pj2tr",
+            "x-is-trusted": "yes",
+            "x-real-ip": "223.123.21.251"
+          },
+          "params": {},
+          "query": {
+            "user_id": "ec1695ee-233c-41be-b3e3-e39eeaadc0f3"
+          },
+          "body": {},
+          "webhookUrl": "https://team4aiml.app.n8n.cloud/webhook/get-user-orders",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook - Get User Orders": {
+      "main": [
+        [
+          {
+            "node": "Fetch Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Orders": {
+      "main": [
+        [
+          {
+            "node": "Fetch Order Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Combining Orders, Items, and Products's Information",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Fetch Order Items": {
+      "main": [
+        [
+          {
+            "node": "Fetch Product Details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Combining Items and Products information",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Fetch Product Details": {
+      "main": [
+        [
+          {
+            "node": "Combining Items and Products information",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combining Items and Products information": {
+      "main": [
+        [
+          {
+            "node": "Refining Previous Node's Information",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refining Previous Node's Information": {
+      "main": [
+        [
+          {
+            "node": "Combining Orders, Items, and Products's Information",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combining Orders, Items, and Products's Information": {
+      "main": [
+        [
+          {
+            "node": "Consolidating Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidating Final Output": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f0b28bda-edcc-4786-9cd5-a6f9a0d61c5f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "zhdShRvhWcOW4R3M",
+  "tags": []
+}

@@ -1,0 +1,704 @@
+{
+  "name": "PLACE_ORDER",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "place-order-cod",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6645e34f-a3cc-41cc-91de-8e61ce4fec0b",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -816,
+        192
+      ],
+      "webhookId": "6d860d2a-8098-4018-8f98-48c7b00e7fc9"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get cart items from previous node\nconst cartItems = $input.all();\n\n// Calculate total amount\nlet totalAmount = 0;\nfor (const item of cartItems) {\n  const price = item.json.price || 0;\n  const quantity = item.json.quantity || 0;\n  totalAmount += price * quantity;\n}\n\n// Get webhook body data from the Webhook node\nconst webhookData = $('Webhook').first().json.body;\n\n// Return result with total amount, cart items, and webhook data\nreturn [\n  {\n    json: {\n      total_amount: totalAmount,\n      cart_items: cartItems.map(item => item.json),\n      webhook_data: webhookData\n    }\n  }\n];"
+      },
+      "id": "184fecca-d333-4952-92db-4ad579b2b2d6",
+      "name": "Calculate Total Amount",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate unique order number\nconst timestamp = Date.now();\nconst randomNum = Math.floor(1000 + Math.random() * 9000);\nconst orderNumber = `ORD-${timestamp}${randomNum}`;\n\n// Return all previous data plus order_number field\nreturn $input.all().map(item => ({\n  json: {\n    ...item.json,\n    order_number: orderNumber\n  }\n}));"
+      },
+      "id": "146fc987-a0a9-49db-9bc0-57f9c2f377cf",
+      "name": "Generate Order Number",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "orders",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Webhook').first().json.body.user_id }}"
+            },
+            {
+              "fieldId": "order_number",
+              "fieldValue": "={{ $json.order_number }}"
+            },
+            {
+              "fieldId": "total_amount",
+              "fieldValue": "={{ $json.total_amount }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending"
+            },
+            {
+              "fieldId": "payment_method",
+              "fieldValue": "COD"
+            },
+            {
+              "fieldId": "shipping_address",
+              "fieldValue": "={{ $('Webhook').first().json.body.shipping_address }}"
+            },
+            {
+              "fieldId": "phone_number",
+              "fieldValue": "={{ $('Webhook').first().json.body.phone_number }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $('Webhook').first().json.body.notes }}"
+            }
+          ]
+        }
+      },
+      "id": "577c21ce-09ef-47e7-b285-e6f08deee855",
+      "name": "Insert Order",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        672,
+        416
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "bb4c306f-4897-452b-ba92-6dfed63459ea",
+      "name": "Loop Over Cart Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1440,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "order_items",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "order_id",
+              "fieldValue": "={{ $('Insert Order').first().json.id }}"
+            },
+            {
+              "fieldId": "product_id",
+              "fieldValue": "={{ $json.product_id }}"
+            },
+            {
+              "fieldId": "quantity",
+              "fieldValue": "={{ $json.quantity }}"
+            },
+            {
+              "fieldId": "price_at_purchase",
+              "fieldValue": "={{ $json.price }}"
+            }
+          ]
+        }
+      },
+      "id": "8afc54e4-240d-49dc-8afa-d8d5cedf6341",
+      "name": "Insert Order Item",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1696,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "products",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "stock_quantity",
+              "fieldValue": "={{ $('Loop Over Cart Items').item.json.stock_quantity - $json.quantity }}"
+            }
+          ]
+        }
+      },
+      "id": "50af296b-fecb-4e16-ae96-b412c9470e59",
+      "name": "Update Product Inventory",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "cart_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cart_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Merge1').item.json.cart_id }}"
+            }
+          ]
+        }
+      },
+      "id": "12d8ce1b-69da-467a-8764-c224cc520e4c",
+      "name": "Clear Cart",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1696,
+        -64
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"order_id\": \"{{ $('Insert Order').item.json.id }}\",\n  \"order_number\": \"{{ $('Insert Order').item.json.order_number }}\",\n  \"total\": {{ $('Calculate Total Amount').item.json.total_amount }},\n  \"status\": \"{{ $('Insert Order').item.json.status }}\"\n}",
+        "options": {}
+      },
+      "id": "255699c5-fc97-4c60-9215-99c3979e7469",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2176,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cart",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.body.user_id }}"
+            }
+          ]
+        }
+      },
+      "id": "0f8dcabd-0594-4838-ace6-5c757fe87617",
+      "name": "Fetch Cart",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1200,
+        160
+      ],
+      "id": "a30b01af-8e9c-4e04-b4fa-4cba519f5993",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cart_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cart_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        192
+      ],
+      "id": "f24346b9-7d4b-4c81-b9eb-8897143de0cd",
+      "name": "Fetch Cart Item(s)",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "products",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b4b253df-3fb8-4bf5-9153-b16b660d7c66",
+      "name": "Fetch Product(s) Details",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        0,
+        416
+      ],
+      "id": "92b90a70-d876-4d4d-90ae-fe8aaba961df",
+      "name": "Combining Cart Item(s) and Product(s) Info"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input item\nconst inputItem = $input.item.json;\n\n// Extract the id\nconst orderId = inputItem.id;\n\n// Return two items with the same id\nreturn [\n  { json: { id: orderId } },\n  { json: { id: orderId } }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        416
+      ],
+      "id": "a36c50e2-44d3-4b9d-90b1-f18e615ea011",
+      "name": "Duplicating ID For Merging Information"
+    },
+    {
+      "parameters": {
+        "content": "## Fetching Relevant Details For Fetching Order And Subsequent Inventory Related Operations",
+        "height": 528,
+        "width": 1088
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -912,
+        -176
+      ],
+      "id": "6cf167f1-0e27-498c-917e-cbd282055e0b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Consolidating Info For Placing Order And Actual Execution of Place Order Operation",
+        "height": 240,
+        "width": 2288,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -912,
+        352
+      ],
+      "id": "ded326d4-2d60-466f-8fab-cd7cd8665a97",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Consolidating All Relevant Information For Inserting **Order Items**, **Updating Product Inventory**, and **Clearing Cart** In Subsequent Nodes",
+        "height": 528,
+        "width": 1200,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        176,
+        -176
+      ],
+      "id": "eb9d6c7c-f617-4870-8c98-93fa5129c1bb",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Process Cart Items: Add to Order, Update Stock, Clear Cart",
+        "height": 768,
+        "width": 224,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        -176
+      ],
+      "id": "00a33213-cb45-4599-bce8-c9810ad310fe",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Process Cart Items: Add to Order, Update Stock, Clear Cart",
+        "height": 768,
+        "width": 512,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        -176
+      ],
+      "id": "2f32587b-916a-4226-bf9f-629f473e9266",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Sending Final Response Back To Frontend",
+        "height": 768,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2112,
+        -176
+      ],
+      "id": "86dbfdb3-fb31-487b-a096-ec22df923fb3",
+      "name": "Sticky Note5"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "team4aiml.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "content-length": "262",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "en-US,en;q=0.9",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "2402:ad80:136:8f26:1a9:f67d:3fac:434d",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "PK",
+            "cf-ray": "9aa1bebbc3b7ce69-SIN",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "origin": "null",
+            "priority": "u=1, i",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "2402:ad80:136:8f26:1a9:f67d:3fac:434d, 172.71.124.103",
+            "x-forwarded-host": "team4aiml.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-77-7df8c744bc-9xngt",
+            "x-is-trusted": "yes",
+            "x-real-ip": "2402:ad80:136:8f26:1a9:f67d:3fac:434d"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "user_id": "ec1695ee-233c-41be-b3e3-e39eeaadc0f3",
+            "shipping_address": {
+              "full_name": "Saleem Shahzad",
+              "street": "House#1945, Mohallah Hakiman Wala",
+              "city": "Khushab",
+              "state": "Punjab",
+              "postal_code": "44000"
+            },
+            "phone_number": "+923137108490",
+            "notes": "Be on time, please."
+          },
+          "webhookUrl": "https://team4aiml.app.n8n.cloud/webhook/place-order-cod",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Cart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Total Amount": {
+      "main": [
+        [
+          {
+            "node": "Generate Order Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Order Number": {
+      "main": [
+        [
+          {
+            "node": "Insert Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Order": {
+      "main": [
+        [
+          {
+            "node": "Duplicating ID For Merging Information",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Cart Items": {
+      "main": [
+        [
+          {
+            "node": "Clear Cart",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Order Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Order Item": {
+      "main": [
+        [
+          {
+            "node": "Update Product Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Product Inventory": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Cart Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Cart": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Cart": {
+      "main": [
+        [
+          {
+            "node": "Fetch Cart Item(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Cart Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Cart Item(s)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Product(s) Details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Combining Cart Item(s) and Product(s) Info",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Fetch Product(s) Details": {
+      "main": [
+        [
+          {
+            "node": "Combining Cart Item(s) and Product(s) Info",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combining Cart Item(s) and Product(s) Info": {
+      "main": [
+        [
+          {
+            "node": "Calculate Total Amount",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicating ID For Merging Information": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "fe7e1b56-f96d-41ba-bafa-98e6d544114e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "NVaREYZEQtkowpQO",
+  "tags": []
+}

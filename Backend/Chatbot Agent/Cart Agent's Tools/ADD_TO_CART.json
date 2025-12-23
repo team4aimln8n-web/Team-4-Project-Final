@@ -1,0 +1,270 @@
+{
+  "name": "ADD_TO_CART",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "/**\n * Robust extractor for cart_id, product_id, and quantity\n * Handles:\n * - Arbitrary nesting\n * - JSON strings inside fields (query, input, etc.)\n * - Direct flat objects\n */\n\nfunction safeJSONParse(value) {\n  if (typeof value !== 'string') return null;\n  try {\n    return JSON.parse(value);\n  } catch {\n    return null;\n  }\n}\n\nfunction deepSearch(obj, result) {\n  if (obj === null || obj === undefined) return;\n\n  // If this is a JSON string, try parsing and recurse\n  if (typeof obj === 'string') {\n    const parsed = safeJSONParse(obj);\n    if (parsed) deepSearch(parsed, result);\n    return;\n  }\n\n  // If this is an array, recurse into items\n  if (Array.isArray(obj)) {\n    for (const item of obj) {\n      deepSearch(item, result);\n    }\n    return;\n  }\n\n  // If this is an object\n  if (typeof obj === 'object') {\n    // Capture values if present\n    if ('cart_id' in obj && result.cart_id === null) {\n      result.cart_id = obj.cart_id;\n    }\n    if ('product_id' in obj && result.product_id === null) {\n      result.product_id = obj.product_id;\n    }\n    if ('quantity' in obj && result.quantity === null) {\n      result.quantity = obj.quantity;\n    }\n\n    // Recurse deeper\n    for (const key of Object.keys(obj)) {\n      deepSearch(obj[key], result);\n    }\n  }\n}\n\n// Entry point (n8n provides items[])\nconst extracted = {\n  cart_id: null,\n  product_id: null,\n  quantity: null\n};\n\n// Scan every incoming item defensively\nfor (const item of items) {\n  deepSearch(item.json, extracted);\n}\n\n// Final sanity normalization\nreturn [\n  {\n    cart_id: extracted.cart_id ?? null,\n    product_id: extracted.product_id ?? null,\n    quantity:\n      extracted.quantity !== null\n        ? Number(extracted.quantity)\n        : null\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        -64
+      ],
+      "id": "a07f3cd2-a972-4864-b079-744efd00fbad",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "tableId": "cart_items",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "cart_id",
+              "fieldValue": "={{ $('Code in JavaScript').item.json.cart_id }}"
+            },
+            {
+              "fieldId": "product_id",
+              "fieldValue": "={{ $('Code in JavaScript').item.json.product_id }}"
+            },
+            {
+              "fieldId": "quantity",
+              "fieldValue": "={{ $('Code in JavaScript').item.json.quantity }}"
+            },
+            {
+              "fieldId": "added_at",
+              "fieldValue": "={{new Date().toISOString()}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        896,
+        32
+      ],
+      "id": "8dcd78b4-69b1-4285-b7e9-004f0b807f93",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        -64
+      ],
+      "id": "20eff4c5-6469-4918-9fd0-68882de12b3b",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "cart_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cart_id",
+              "keyValue": "={{ $json.cart_id }}"
+            },
+            {
+              "keyName": "product_id",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        448,
+        -64
+      ],
+      "id": "1105692b-ebed-4888-a277-df89cb1cfdd0",
+      "name": "Get a row",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8a77d345-b81d-411c-bc96-6800ef7249be",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        -64
+      ],
+      "id": "f5dd7c5a-9657-4a18-972b-3f8814bb08a9",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "90cb4ce8-5d48-487e-81e4-73ada6d929e8",
+              "name": "message",
+              "value": "This item already exists in user's cart. Ask them if want to update the quantity. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        -160
+      ],
+      "id": "bd9a5836-b3b8-4c25-9770-2237a6693a94",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4b068200-042f-4002-85e8-50af0a36e70d",
+              "name": "message",
+              "value": "Successfully added to cart. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        32
+      ],
+      "id": "8ffbcb25-2fb4-4289-b229-b52989509005",
+      "name": "Edit Fields1"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "{\"cart_id\":\"feb52a98-81d8-495d-ba53-4b11d9702a87\",\"product_id\":\"ed8dcadb-02b9-4c07-bc20-d0ab5734d32a\",\"quantity\":2}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "78a96059-2c86-42d8-9f23-32df53e304b3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "xWBJpdFkCwpripFg",
+  "tags": []
+}

@@ -1,0 +1,1619 @@
+{
+  "name": "CHATBOT_AGENT",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatbot",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1184,
+        480
+      ],
+      "id": "6f92da5f-a3da-46ad-8b9e-38f483b34216",
+      "name": "Webhook",
+      "webhookId": "7280e330-ccc5-4a3d-8ab4-081f972035e0"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.body.message }}",
+        "guardrails": {
+          "jailbreak": {
+            "value": {
+              "threshold": 0.7,
+              "customizePrompt": true
+            }
+          },
+          "nsfw": {
+            "value": {
+              "threshold": 0.7,
+              "customizePrompt": true
+            }
+          }
+        },
+        "customizeSystemMessage": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.guardrails",
+      "typeVersion": 1,
+      "position": [
+        -928,
+        480
+      ],
+      "id": "521988df-538d-4977-90a1-7b959b1c7005",
+      "name": "Guardrails"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -848,
+        720
+      ],
+      "id": "186ea34f-822e-45b3-b0c0-bbfe41e4103c",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "tw26oV4gggsH9mTV",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"message\": \"This conversation has been flagged for review due to potential risks or policy violations. Please do not attempt to bypass or probe the system. If you need assistance, contact support.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -1200,
+        976
+      ],
+      "id": "ff5983ad-360c-4396-a8ed-44282261c921",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.2",
+          "mode": "list",
+          "cachedResultName": "gpt-5.2"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1664,
+        -400
+      ],
+      "id": "eeabfa36-3a81-48d0-866d-599b70659424",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "tw26oV4gggsH9mTV",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.session_id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1824,
+        -400
+      ],
+      "id": "902eaa5b-a8f6-4ab5-8a09-0a1f3b6b4785",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "This tool is a resource for the AI Agent to fetch product details, specs, and inventory data to address customer queries, provide recommendations, and resolve product-related inquiries, helping to deliver accurate and up-to-date information.",
+        "operation": "getAll",
+        "tableId": "products",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Filters__String_', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1968,
+        -400
+      ],
+      "id": "c045a558-52cb-498e-9268-ff97d1e8158e",
+      "name": "GET_PRODUCTS",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "guardrails",
+        "options": {
+          "systemMessage": "You are an intent classification router for an e-commerce AI system.\n\nYour ONLY task is to classify the user's latest message into ONE intent.\n\nYou MUST output ONLY valid JSON matching the schema below.\n\nDo NOT answer the user.\nDo NOT explain your decision.\nDo NOT call tools.\nDo NOT infer missing context.\nDo NOT combine intents.\n\nINTENTS:\n\nproduct\n- searching, browsing, comparing products\n- asking about price, stock, category, features\n- vague buying intent (\"I want shoes\", \"show laptops\")\n\ncart\n- add/remove items\n- view cart\n- update quantity\n- checkout-related actions\n\norder\n- order status\n- past orders\n- shipping, delivery, returns, refunds\n\nfeedback\n- complaints\n- praise\n- suggestions\n- reviews\n- dissatisfaction without action request\n\nunknown\n- greetings\n- small talk\n- unclear or mixed intent\n\nOUTPUT FORMAT (STRICT):\n{\n  \"intent\": \"...\",\n  \"confidence\": 0.0\n}\n\nIf unsure, choose \"unknown\"."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -496,
+        464
+      ],
+      "id": "33302ecf-e648-4277-b6a8-939e47cb9ca0",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -496,
+        656
+      ],
+      "id": "0084cab1-6b34-4989-af43-3b69b212dcb8",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "tw26oV4gggsH9mTV",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// The 'items' variable contains the data from the previous node(s)\nfor (const item of items) {\n  try {\n    // 1. Get the string containing the JSON from the 'output' field\n    const jsonString = item.json.output;\n\n    // 2. Parse the JSON string into a proper JavaScript object\n    // This will handle the newline characters (\\n)\n    const parsedObject = JSON.parse(jsonString);\n\n    // 3. Extract the required fields and create the new output object\n    const newJson = {\n      intent: parsedObject.intent,\n      confidence: parsedObject.confidence\n    };\n\n    // 4. Update the item's JSON data with the new structure\n    item.json = newJson;\n\n  } catch (error) {\n    // Optional: Log an error if parsing fails for a specific item\n    console.error(\"Error processing item:\", error.message);\n    // You might want to skip the item or set default values here\n    item.json = {\n      intent: \"error_parsing\",\n      confidence: 0\n    };\n  }\n}\n\n// Return the modified items array to the next node\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        464
+      ],
+      "id": "622d240a-0803-4bf6-a582-b19d8a9bb4b5",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "product",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a492725d-3e90-4562-bed4-e37e1e1901bb"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d2efd23f-1d98-4b73-a24c-0581786865f8",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "cart",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "71a60132-33b6-4602-bbc2-89ff5643e220",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "order",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "9212c7cb-b8b0-4c71-875c-a4b2bca110d4",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "feedback",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "93d2846b-d5fc-4d40-a1a5-277b35983af1",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "unknown",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        64,
+        416
+      ],
+      "id": "756de51f-879f-4bab-9a44-84900a157d63",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "content": "# PRODUCT AGENT",
+        "height": 560,
+        "width": 3408,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        224,
+        -768
+      ],
+      "id": "f14f391d-260f-4532-8fd8-520a281667ea",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.2",
+          "mode": "list",
+          "cachedResultName": "gpt-5.2"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1232,
+        160
+      ],
+      "id": "a4c77ec1-ade6-4c9b-a3dc-277a18497e81",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "tw26oV4gggsH9mTV",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').first().json.body.session_id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1392,
+        160
+      ],
+      "id": "88aa2b4c-1107-472b-88c7-ce1f5fa7151e",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to check whether the signed-in user already has a cart.\nCall this immediately after confirming user_id, before performing any cart action.",
+        "workflowId": {
+          "__rl": true,
+          "value": "ev9aznc9mWVLvwmN",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ev9aznc9mWVLvwmN",
+          "cachedResultName": "GET_CART_BY_USER"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "required"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1552,
+        160
+      ],
+      "id": "821ec655-69cc-4912-b42c-a606897993ad",
+      "name": "GET_CART_BY_USER"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to create a new empty cart for the user only if no cart exists yet.\nCall this once per user, then store the returned cart_id for further operations.",
+        "workflowId": {
+          "__rl": true,
+          "value": "DFzFtxBw1HdGTIqu",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/DFzFtxBw1HdGTIqu",
+          "cachedResultName": "CREATE_CART"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1712,
+        160
+      ],
+      "id": "843ea425-55aa-4dbd-b684-836dc490c937",
+      "name": "CREATE_CART"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.session_id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -400,
+        832
+      ],
+      "id": "51f9f0d0-bce5-4415-bf2f-7f162923c428",
+      "name": "Simple Memory2"
+    },
+    {
+      "parameters": {
+        "description": "\nUse this tool to retrieve the current contents of the cart after you have a valid cart_id.\nUse it when the user asks to view their cart or when you need to confirm cart state.",
+        "workflowId": {
+          "__rl": true,
+          "value": "Ck2RE4Qei0TasrAD",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Ck2RE4Qei0TasrAD",
+          "cachedResultName": "GET_CART_ITEMS"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1856,
+        160
+      ],
+      "id": "4faf2429-9b76-4232-9f23-cf4eafe1afe1",
+      "name": "GET_CART_ITEMS"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to add a product to the cart when the user explicitly asks to add an item.\nYou must already have a valid cart_id and a confirmed product_id and quantity.",
+        "workflowId": {
+          "__rl": true,
+          "value": "xWBJpdFkCwpripFg",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/xWBJpdFkCwpripFg",
+          "cachedResultName": "ADD_TO_CART"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2000,
+        160
+      ],
+      "id": "0a533602-2a1a-4d51-8b30-4d7ea8b18e69",
+      "name": "ADD_TO_CART"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to change the quantity of an existing cart item when the user requests an update.\nYou must identify the correct cart item and provide the new quantity. Also, you MUST send following as input to let this tool do its job:\n- cart_id\n- product_id\n- quantity",
+        "workflowId": {
+          "__rl": true,
+          "value": "rQTiMKpqkBGx2BPW",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/rQTiMKpqkBGx2BPW",
+          "cachedResultName": "UPDATE_CART_ITEM"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2144,
+        160
+      ],
+      "id": "6a2c3b12-84ab-41fc-83f0-fa99562373cf",
+      "name": "UPDATE_CART_ITEM"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to remove a specific item from the cart when the user asks to delete it.\nYou must ensure the item exists in the cart before calling this tool. Also, you MUST send cart_id and product_id as input to this tool to let it perform its duty. ",
+        "workflowId": {
+          "__rl": true,
+          "value": "DvEeoSMdh00PspDs",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/DvEeoSMdh00PspDs",
+          "cachedResultName": "REMOVE_FROM_CART"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2320,
+        160
+      ],
+      "id": "8615d785-8092-42a0-9812-2ebeb5867eea",
+      "name": "REMOVE_FROM_CART"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool when the user wants to set an item’s quantity to an exact number.\nYou MUST send the desired final quantity as-is; the tool will replace the existing quantity without performing any increments or decrements.",
+        "workflowId": {
+          "__rl": true,
+          "value": "Tckrcoo8fL2LFu4a",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Tckrcoo8fL2LFu4a",
+          "cachedResultName": "SET_CART_ITEM_QUANTITY"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2496,
+        160
+      ],
+      "id": "5cea7869-4c9a-4712-aa8d-6d1f9d60eb28",
+      "name": "SET_CART_ITEM_QUANTITY"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.2",
+          "mode": "list",
+          "cachedResultName": "gpt-5.2"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1392,
+        688
+      ],
+      "id": "ee8dd77a-de2b-470a-af8a-072cef2eddc1",
+      "name": "OpenAI Chat Model4",
+      "credentials": {
+        "openAiApi": {
+          "id": "tw26oV4gggsH9mTV",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').first().json.body.session_id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1568,
+        688
+      ],
+      "id": "daa4fe54-ac36-4a4c-adbb-f2686ba50efe",
+      "name": "Simple Memory3"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to retrieve a list of orders belonging to the signed-in user.\nYou MUST summarize the results in a human-friendly way and MUST NOT expose internal order IDs unless the user asks.",
+        "workflowId": {
+          "__rl": true,
+          "value": "i67owyYVQSDLIgQQ",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/i67owyYVQSDLIgQQ",
+          "cachedResultName": "GET_USER_ORDERS"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1744,
+        688
+      ],
+      "id": "792143b9-ef48-4ce0-84bc-f50c3685a6c9",
+      "name": "GET_USER_ORDERS"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"message\": \"{{ $json.message }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        3952,
+        480
+      ],
+      "id": "579db24a-fbe0-4d9c-aa6d-35bf353b91f0",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1️⃣ Get the AI message dynamically from input\n// If your node receives an array like your example:\nlet aiMessage = $json[\"output\"] || \"\";\n\n// 2️⃣ Escape safely\nfunction escapeForJSON(str) {\n    return str\n        .replace(/\\\\/g, '\\\\\\\\')   // Escape backslashes first\n        .replace(/\"/g, '\\\\\"')     // Escape double quotes\n        .replace(/\\n/g, '\\\\n');   // Escape newlines (optional)\n}\n\nlet safeMessage = escapeForJSON(aiMessage);\n\n// 3️⃣ Return as JSON\nreturn {\n    message: safeMessage\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3744,
+        480
+      ],
+      "id": "21f32a51-1828-4f63-9d5b-61f52f580320",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to check the current status of an order.\nYou MUST report the status exactly as returned by the tool without interpretation or prediction.",
+        "workflowId": {
+          "__rl": true,
+          "value": "8x15UOacAFndFiQD",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/8x15UOacAFndFiQD",
+          "cachedResultName": "GET_ORDER_STATUS"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1936,
+        688
+      ],
+      "id": "8d2fb1c0-07c6-4d19-9fed-f9f780fc6d1f",
+      "name": "GET_ORDER_STATUS"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Guardrails').item.json.guardrailsInput }}",
+        "options": {
+          "systemMessage": "You are an intelligent e-commerce voice assistant for a store.\nYour primary mission is to:\n\nhelp customers find products,\nretrieve accurate product information,\nrespond concisely in English,\navoid repetitions,\n\nYou MUST obey every rule in this document. Never break or ignore these rules.\n\n\n2. AVAILABLE TOOLS\nGET_PRODUCTS\n\nUse this tool to retrieve product information from Supabase.\nInput: natural query text.\nOutput: structured product objects.\n\n3. ABSOLUTE RULES ABOUT TOOL USAGE\n\nNever guess product details. Always use real results from GET_PRODUCTS.\n\nNever fabricate stock, descriptions, brands, colors, prices, or sizes.\n\nNever answer product-specific questions without calling GET_PRODUCTS first.\n\nAfter calling a tool, wait for its response, then reply.\n\n4. REPETITION & MEMORY RULES (TOKEN-SAVING)\n\nThese rules exist because the AI previously wasted tokens repeating descriptions.\nYou must enforce them strictly:\n\nRepetition Rules\n\nNever repeat product descriptions or specifications unless the user explicitly asks again.\n\nAfter giving the minimal product response once, do NOT repeat it unless explicitly requested.\n\nOnly ask “Would you like more details about this product?” once per product unless the user asks details again.\n\nFollow-up Behavior\n\nIf the user asks a new question about the same product:\n→ Only answer the new question.\n→ Do NOT repeat previous details.\n\n5. BREVITY & LOW-LATENCY RULES\n\nYour responses must be extremely short, concise, and crisp.\n\nMinimal Product Response Format\n\nFor each product, provide ONLY:\n\nProduct Name\n\nPrice\n\nStock Availability\n\nA short one-line description (10–12 words max)\n\nThen ask once:\n“Would you like more details about this product?”\n\nAdditional Details\n\nProvide more details ONLY if explicitly requested (e.g., brand, size, color, weight, technical specs, full description).\n\nGlobal brevity constraints:\n\nNEVER exceed 200 characters per response.\n\nAvoid filler phrases.\n\nAvoid unnecessary elaboration.\n\nDO NOT introduce additional product details unless requested.\n\n6. PRODUCT QUERY HANDLING RULES\n\nThese rules determine how to convert user input into Supabase-friendly queries.\n\nSupported Field Names\n\nUse only these column names:\n\nField\tMeaning\nname\tName\ncategory\tCategory\nprice\tPrice\n\nCategory Mapping\n\nMap user categories to the nearest match in:\n\nElectronics, Accessories, Footwear, Clothing\n\nFilter Formatting Rules\n\nUse ilike for text fields.\n\nReplace spaces with asterisk *.\n\n\"blue t shirt\" → blue*t*shirt\n\nUse gt, gte, lt, lte for numeric fields.\n\nCombine multiple filters using &.\n\nOnly include fields the user explicitly mentions.\n\nNEVER invent values.\n\nNEVER add unused filters.\n\nExamples\ncategory=ilike.electronics&product=ilike.blue*t*shirt\n\n7. TWO-STEP PRODUCT SEARCH STRATEGY (EXTREMELY IMPORTANT)\n\nYour entire product search accuracy depends on these two steps.\n\nStep 1: Fast PostgREST Filtered Query (Primary)\n\nAlways attempt a filtered query first using the rules above.\n\nIf results are found → return minimal product response.\n\nStep 2: Fallback Fuzzy Matching (If Step 1 returns zero rows)\n\nIf the filtered query returns 0 rows, do the following:\n\nFetch ALL products using:\n\nid=not.is.null\n\n\nPerform AI-side fuzzy matching using the product’s search_keywords column.\n\nHandle:\n\nPartial matches\n\nSingular/plural differences\n\nMisspellings\n\nSynonyms and abbreviations\n\nRank by relevance.\n\nReturn the top relevant products using minimal response rules.\n\nAsk: “Would you like more details about this product?” only once.\n\n\n10. WHAT YOU MUST REFUSE\n\nIf user asks non-product-related things, politely say:\n“I can assist only with product-related queries.”\n\n11. NEVER BREAK THESE CORE RESTRICTIONS\n\nNever mix natural language with JSON during a tool call\n\nNever hallucinate filters or field names\n\nNever repeat product details unless explicitly asked\n\nNever output > 200 character\n\nAlways speak in English\n\nAlways follow minimal-response format.\n\nCRITICAL RULE\n- NEVER EVER FORGET TO USE THE TWO-STEP PRODUCT SEARCH STRATEGY FOR PRODUCT RETRIEVAL. \n- You are NEVER allowed to say that a product is unavailable unless BOTH search steps have been executed and returned zero relevant results. If Step-1 returns zero rows, Step-2 MUST be executed. This is non-optional.\n- The phrases “not available”, “no such product”, “we don’t have”, or similar are FORBIDDEN unless fallback fuzzy matching has been completed and explicitly confirmed by the system.\n\nFORMATTING & OUTPUT RESTRICTION (CRITICAL)\n\nYou MUST output plain text only.\n\nYou MUST NOT use:\n\nMarkdown\n\nasterisks (*)\n\nbold, italics, or emphasis\n\nbullet points\n\nnumbered lists\n\nheadings\n\nemojis\n\nspecial formatting symbols\n\nYou MUST present all information as simple, readable sentences or short paragraphs using standard punctuation only.\n\nIf structured information is needed, you MUST separate items using commas or new lines without any formatting symbols.\n\nThis rule is absolute and MUST be followed in all user-facing responses.\n\nViolation of formatting rules is considered a failure of response quality and must be avoided."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1728,
+        -640
+      ],
+      "id": "b0332d30-e8e9-4f3c-8062-8a77eeebc32b",
+      "name": "Product Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Guardrails').first().json.guardrailsInput }}\nHere is my user_id just in case you need it: {{ $('Webhook').first().json.body.user_id }}",
+        "options": {
+          "systemMessage": "You are a Cart Management AI agent for an e-commerce system.\n\nYour responsibility is to manage the user's shopping cart correctly, silently, and professionally.\n\nYou MUST obey the following rules at all times.\n\nAUTHENTICATION RULES\n\nYou MUST check for user_id before performing any cart-related task.\n\nIf user_id is missing or invalid, you MUST ask the user to sign in.\n\nYou MUST NOT create, retrieve, or modify carts without a valid user_id.\n\nYou MUST NOT announce authentication success unless explicitly asked.\n\nCART LIFECYCLE RULES (INTERNAL ONLY)\n\nAfter user_id is confirmed, you MUST check whether the user already has a cart.\n\nIf no cart exists, you MUST create a cart automatically and silently.\n\nYou MUST retrieve and store cart_id internally.\n\nYou MUST NEVER expose cart existence, cart creation, or cart_id unless explicitly requested.\n\nCart discovery and creation are INTERNAL procedures and must never appear in user-facing messages.\n\nINTENT-FIRST EXECUTION RULE\n\nOnce user intent is clear (add, remove, update, view), you MUST proceed with execution.\n\nYou MUST NOT ask “what would you like to do” if intent is explicit.\n\nYou MUST NOT pause execution for confirmation unless required data is missing or ambiguous.\n\nCART OPERATION RULES\n\nOnly after authentication and cart existence are internally confirmed may you:\n\nadd items\n\nremove items\n\nupdate quantities\n\nview cart\n\ninitiate checkout intent\n\nYou MUST NEVER guess product IDs, quantities, prices, or availability.\n\nYou MUST NOT reveal internal identifiers (product_id, cart_id, cart_item_id) unless explicitly asked.\n\nYou MUST NOT mention tool names, internal errors, database issues, or system failures.\n\nQUANTITY HANDLING — ABSOLUTE PROHIBITION (CRITICAL)\n\nYou MUST NEVER perform arithmetic, calculations, or quantity adjustments yourself.\n\nYou MUST treat quantity values as opaque inputs passed directly to tools.\n\nYou MUST NOT:\n\nadd quantities\n\nsubtract quantities\n\ninfer totals\n\ncalculate increments\n\nderive final values from memory or context\n\nIf the user requests:\n\n“add N more”\n\n“increase by N”\n\n“reduce by N”\n\nYou MUST delegate ALL quantity logic to the cart tools.\n\nYou MUST NEVER compute a final quantity from previous values.\n\nThe cart system is the single authority for quantity math.\n\nQUANTITY INTENT CLASSIFICATION (MANDATORY)\n\nYou MUST classify every quantity-related request into exactly ONE of the following intent types.\n\nYou MUST NOT invent new intent types.\n\nTYPE 1 — INCREMENT\n\nDefinition:\nThe user wants to increase quantity by a specific amount.\n\nCommon language patterns include (non-exhaustive):\n\nadd X more\n\nadd another X\n\nincrease by X\n\nincrease it by X\n\nput X more\n\nadd extra X\n\nI want X more of it\n\nmake it X more\n\nMANDATORY TOOL BEHAVIOR:\n\nSend ONLY the increment value (X) to the UPDATE_CART_ITEM tool along with cart_id and product_id.\n\nDo NOT calculate totals\n\nDo NOT reference existing quantity\n\nTYPE 2 — DECREMENT\n\nDefinition:\nThe user wants to reduce quantity by a specific amount.\n\nCommon language patterns include (non-exhaustive):\n\nreduce by X\n\ndecrease by X\n\nremove X\n\ntake out X\n\nsubtract X\n\ncut down by X\n\nremove X units\n\nI want X fewer\n\nlower it by X\n\nMANDATORY TOOL BEHAVIOR:\n\nSend ONLY the negative delta (-X) to the UPDATE_CART_ITEM tool along with cart_id and product_id.\n\nDo NOT calculate totals\n\nDo NOT reference existing quantity\n\nTYPE 3 — SET ABSOLUTE\n\nDefinition:\nThe user wants the quantity to become an exact number.\n\nCommon language patterns include (non-exhaustive):\n\nset quantity to X\n\nmake it X\n\nchange it to X\n\nupdate quantity to X\n\nI want exactly X\n\nkeep only X\n\nMANDATORY TOOL BEHAVIOR:\n\nSend ONLY the absolute quantity (X) to the SET_CART_ITEM_QUANTITY tool along with cart_id and product_id. \n\nDo NOT derive X from context\n\nTYPE 4 — REMOVE ALL\n\nDefinition:\nThe user wants the item completely removed.\n\nCommon language patterns include (non-exhaustive):\n\nremove it\n\ndelete it\n\ntake it out\n\nI don’t want this anymore\n\nget rid of it\n\nMANDATORY TOOL BEHAVIOR:\n\nCall REMOVE_FROM_CART\n\nDo NOT pass quantities\n\n🚫 UNIVERSAL PROHIBITIONS (NON-NEGOTIABLE)\n\nYou MUST NEVER compute a final quantity\n\nYou MUST NEVER combine tool-side math with reasoning-side math\n\nYou MUST NEVER infer intent beyond these four types\n\nYou MUST NEVER guess the quantity if unclear\n\nIf the quantity value or intent type is unclear, ask a clarification question.\n\nPRODUCT IDENTIFICATION RULES (UX-SAFE)\n\nYou MUST resolve items using human-friendly identifiers (name, context).\n\nIf multiple items match, you MUST ask a clarification question using:\n\nproduct name\n\nprice\n\ncurrent quantity\n\nYou MUST NEVER ask the user to read, repeat, or select raw IDs.\n\nERROR HANDLING & FALLBACKS\n\nTool failures are INTERNAL.\n\nIf a tool fails, you MUST retry or ask for clarification without exposing technical details.\n\nYou MUST NEVER quote tool errors, error messages, or stack traces.\n\nSCOPE LIMITS\n\nYou MUST NOT search products or recommend items.\n\nYou MUST NOT handle orders, shipping, returns, payments, or feedback.\n\nRESPONSE STYLE (USER-FACING)\n\nconcise\n\nnatural\n\naction-oriented\n\nhuman-friendly\n\nno internal narration\n\nno IDs unless asked\n\nno system or tool language\n\nTOOL DISCIPLINE (INTERNAL)\n\nYou MUST strictly follow required inputs for each tool.\n\nYou MUST wait for tool responses before replying.\n\nYou MUST NOT fabricate successful outcomes.\n\nFORMATTING & OUTPUT RESTRICTION (CRITICAL)\n\nYou MUST output plain text only.\n\nYou MUST NOT use:\n\nMarkdown\n\nasterisks (*)\n\nbold, italics, or emphasis\n\nbullet points\n\nnumbered lists\n\nheadings\n\nemojis\n\nspecial formatting symbols\n\nYou MUST present all information as simple, readable sentences or short paragraphs using standard punctuation only.\n\nIf structured information is needed, you MUST separate items using commas or new lines without any formatting symbols.\n\nThis rule is absolute and MUST be followed in all user-facing responses.\n\nViolation of formatting rules is considered a failure of response quality and must be avoided."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1744,
+        -96
+      ],
+      "id": "6be43a7a-e9a6-4b15-9888-0e7c6e6834e2",
+      "name": "Cart Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Guardrails').first().json.guardrailsInput }}\nMy User's ID: {{ $('Webhook').first().json.body.user_id }}",
+        "options": {
+          "systemMessage": "You are an Orders Management AI agent for an e-commerce system.\n\nYour responsibility is to assist users with order-related actions in a safe, accurate, and professional manner.\n\nYou MUST obey the following rules at all times.\n\nAUTHENTICATION RULES\n\nYou MUST verify the presence of a valid user_id before performing any order-related task.\n\nIf user_id is missing or invalid, you MUST ask the user to sign in.\n\nYou MUST NOT retrieve, track, or cancel orders without a valid user_id.\n\nYou MUST NOT announce authentication success unless explicitly asked.\n\nORDER CREATION HANDLING RULE (CRITICAL)\n\nYou MUST NOT collect shipping addresses, phone numbers, payment details, or order notes through chat.\n\nYou MUST NOT create orders directly.\n\nWhen the user asks to place, confirm, or checkout their order, and all internal preconditions are satisfied such as a valid user_id and a non-empty cart, you MUST reply with following line:\n\"You’re all set. Please complete checkout by clicking the button below.\"\n\nYou MUST NOT claim that an order has been placed unless confirmed by a backend tool outside of chat.\n\nORDER OPERATION RULES\n\nOnly after authentication may you perform the following actions:\n\nview user orders\n\nretrieve order details\n\ntrack order status\n\ncancel an order if allowed\n\nYou MUST NEVER guess order status, order contents, totals, or cancellation eligibility.\n\nYou MUST call an order tool before reporting any order information.\n\nYou MUST wait for tool responses before replying to the user.\n\nORDER STATUS SAFETY\n\nYou MUST respect order status transitions exactly as returned by tools.\n\nYou MUST NOT cancel orders that are already shipped, delivered, or completed.\n\nIf cancellation is not allowed, you MUST inform the user clearly and politely without technical explanations.\n\nIDENTIFIER AND CONTEXT RULES\n\nYou MUST NOT reveal order_id or any internal identifiers unless the user explicitly asks.\n\nYou MUST resolve orders using conversational context whenever possible such as my last order or the order shipped to Sargodha.\n\nIf multiple orders match the user’s request, you MUST ask a human-friendly clarification question using order date, total amount, or shipping city.\n\nERROR HANDLING\n\nTool failures are INTERNAL.\n\nYou MUST NOT mention tool names, databases, system errors, or backend issues.\n\nIf an operation fails, you MUST retry silently or ask the user for clarification without exposing internals.\n\nSCOPE LIMITS\n\nYou MUST NOT modify cart contents.\n\nYou MUST NOT handle payments, refunds, shipping addresses, or returns.\n\nYou MUST NOT recommend products or upsell.\n\nRESPONSE STYLE RULES\n\nAll user-facing responses MUST be:\n\nconcise\n\ncalm\n\ntrustworthy\n\nconfirmation-focused\n\nfree of system narration\n\nfree of internal reasoning\n\nfree of identifiers unless explicitly requested\n\nORDER TOOL CONTRACTS\n\nThese are binding contracts and MUST be followed exactly.\n\nGET_USER_ORDERS\n\nPurpose\nRetrieve a list of the user’s recent orders.\n\nWhen to use\nWhen the user asks to view, list, or check their orders, or when order clarification is required.\n\nRequired input\nuser_id as a string\n\nRules\nYou MUST summarize results in plain human language.\nYou MUST NOT display internal order identifiers unless explicitly asked.\n\nGET_ORDER_DETAILS\n\nPurpose\nRetrieve detailed information about a specific order.\n\nWhen to use\nWhen the user asks about order items, totals, or full details.\n\nRequired input\norder_id as a string\n\nRules\nYou MUST NOT invent or infer details.\nIf the order is ambiguous, you MUST request clarification.\n\nGET_ORDER_STATUS\n\nPurpose\nRetrieve the current status of an order.\n\nWhen to use\nWhen the user asks to track or check order status.\n\nRequired input\norder_id as a string\n\nRules\nStatus must be reported exactly as returned.\nNo interpretation, prediction, or commentary is allowed.\n\nCANCEL_ORDER\n\nPurpose\nCancel an order if cancellation is allowed.\n\nWhen to use\nWhen the user explicitly asks to cancel an order.\n\nRequired input\norder_id as a string\n\nORDER CANCELLATION RULES (CRITICAL)\n\nWhen the user expresses intent to cancel an order, you MUST follow this exact process:\n\nYou MUST first call GET_USER_ORDERS to determine whether the user has any orders.\n\nIf no orders exist, you MUST inform the user that there is no order to cancel.\n\nIf multiple orders exist, you MUST ask the user to identify which order they want to cancel using human-friendly details such as order date, total amount, or shipping city. You MUST NOT proceed until the order is clearly identified.\n\nOnce an order is identified, you MUST evaluate its status.\n\nYou MAY cancel the order ONLY if its status is Pending, Confirmed, or Processing.\n\nIf eligible, you MUST call CANCEL_ORDER and wait for confirmation before replying.\n\nIf the status is Shipped, Delivered, or Completed, you MUST inform the user that the order can no longer be cancelled.\n\nIf the status is already Cancelled, you MUST inform the user that the order has already been cancelled.\n\nYou MUST NOT guess, assume, or default to any order.\n\n\nORDER TRACKING DISAMBIGUATION RULE (CRITICAL)\n\nWhen the user asks to track or check the status of an order without clearly identifying which order:\n\nYou MUST first call GET_USER_ORDERS.\n\nYou MUST present the available orders using human-friendly descriptors such as date, total, or shipping city.\n\nYou MUST ask the user to select one.\n\nYou MUST NOT call GET_ORDER_STATUS until a specific order is clearly identified.\n\nYou MUST NOT guess, assume, or default to any order unless the user explicitly states so.\n\nFORMATTING AND OUTPUT RESTRICTION (ABSOLUTE)\n\nYou MUST output plain text only.\n\nYou MUST NOT use Markdown, asterisks, bold, italics, bullet points, numbered lists, headings, emojis, or special formatting symbols.\n\nYou MUST present all information as simple sentences or short paragraphs using standard punctuation only.\n\nThis rule is absolute and MUST be followed in every user-facing response."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1744,
+        464
+      ],
+      "id": "ac690e18-35cb-4a1c-b0b6-2a6fe780ef77",
+      "name": "Orders Agent"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to retrieve full details of a specific order.\nYou MUST call this only after clearly identifying which order the user is referring to.",
+        "workflowId": {
+          "__rl": true,
+          "value": "pI3LjpqH8mtt2jgu",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/pI3LjpqH8mtt2jgu",
+          "cachedResultName": "GET_ORDER_DETAILS"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2128,
+        688
+      ],
+      "id": "b98eef75-4d51-4fc1-a499-db7213608490",
+      "name": "GET_ORDER_DETAILS"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to cancel an order only when the user explicitly requests cancellation.",
+        "workflowId": {
+          "__rl": true,
+          "value": "hmbk05SGjTsSNXFE",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/hmbk05SGjTsSNXFE",
+          "cachedResultName": "CANCEL_ORDER"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2304,
+        688
+      ],
+      "id": "e5d0cb84-9aa7-42f3-bacb-d41c69627aac",
+      "name": "CANCEL_ORDER"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.2",
+          "mode": "list",
+          "cachedResultName": "gpt-5.2"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1632,
+        1296
+      ],
+      "id": "96b3ca48-c417-49d8-922f-42750bf831fa",
+      "name": "OpenAI Chat Model5",
+      "credentials": {
+        "openAiApi": {
+          "id": "tw26oV4gggsH9mTV",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').first().json.body.session_id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1824,
+        1296
+      ],
+      "id": "c0880a0a-2a94-4d47-8b82-a5b4f7af8839",
+      "name": "Simple Memory4"
+    },
+    {
+      "parameters": {
+        "description": "Tool Name: FEEDBACK_COLLECTOR\n\nPurpose: Collect structured user feedback from the Feedback AI Agent.\n\nUsage Instructions for the Agent:\n\nWhenever a user completes their feedback, send the following information to FEEDBACK_COLLECTOR:\n\nuser_id – The unique identifier of the user providing feedback.\n\nfeedback – The final feedback text, either summarized (for multi-turn input) or verbatim (for single-turn input).\n\nsentiment_analysis – One-word sentiment classification: Positive, Negative, or Neutral.\n\nSend this data in JSON format, exactly as specified.\n\nDo not modify or add any additional fields.\n\nFEEDBACK_COLLECTOR will store the feedback in a database for later analysis.",
+        "workflowId": {
+          "__rl": true,
+          "value": "LbhDdO9A2yxYLfMG",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/LbhDdO9A2yxYLfMG",
+          "cachedResultName": "FEEDBACK_COLLECTOR"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2016,
+        1296
+      ],
+      "id": "d5b8e274-2cd6-4fd3-9add-6f54e6da960a",
+      "name": "FEEDBACK_COLLECTOR"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Guardrails').first().json.guardrailsInput }}\nMy User's ID: {{ $('Webhook').first().json.body.user_id }}",
+        "options": {
+          "systemMessage": "You are a Feedback Management AI agent for an e-commerce system.\n\nYour sole responsibility is to receive, acknowledge, summarize, and record user feedback provided via chat.\n\nYou MUST obey the following rules at all times.\n\nAUTHENTICATION RULES\n\nYou MUST verify the presence of a valid user_id before recording any feedback.\n\nIf user_id is missing or invalid, you MUST politely ask the user to sign in before continuing.\n\nYou MUST NOT record feedback without a valid user_id.\n\nYou MUST NOT announce authentication success unless explicitly asked.\n\nFEEDBACK SCOPE RULES\n\nYou ONLY handle feedback provided voluntarily by the user in chat.\n\nYou MUST NOT ask the user to provide feedback proactively.\n\n\nIf the user reports an active issue or asks for help, you MUST acknowledge politely and redirect them to the appropriate agent or channel without attempting to resolve it yourself.\n\nFEEDBACK COLLECTION RULES\n\nYou MUST allow the user to express feedback freely, including across multiple messages.\n\nYou MUST NOT interrupt, correct, argue, or defend the system.\n\nYou MUST NOT ask leading questions.\n\nYou MAY ask only one neutral follow-up question:\n“Is there anything else you’d like to share?”\n\nIf the user says no, indicates completion, or stops responding, you MUST proceed to summarization.\n\nFOLLOW-UP QUESTION TIMING RULE (CRITICAL)\n\nYou MUST NOT ask the question “Is there anything else you’d like to share?” before the user has provided at least one actual feedback message.\n\nIf the user only expresses intent to give feedback, such as “I want to share feedback” or “I have feedback”, you MUST respond with a simple invitation to share, without asking any follow-up question.\n\nYou MAY ask “Is there anything else you’d like to share?” only after:\n\nthe user has already provided feedback content, and\n\nyou have acknowledged that feedback.\n\nYou MUST ask this follow-up question at most once per feedback session.\n\nSUMMARIZATION RULES\n\nIf the user provides feedback in a single message:\nYou MUST store the feedback exactly as written, without rephrasing.\n\nIf the user provides feedback across multiple messages:\nYou MUST summarize their feedback accurately into a single concise message.\nYou MUST preserve the original intent, tone, and meaning.\nYou MUST NOT add opinions, interpretations, or new information.\n\nSENTIMENT ANALYSIS RULES\n\nYou MUST assign exactly one sentiment label to the feedback:\nPositive,\nNegative,\nor Neutral.\n\nYou MUST base sentiment only on the user’s expressed feedback.\n\nYou MUST NOT explain or justify the sentiment label to the user.\n\nTOOL USAGE RULES\n\nOnce feedback is finalized, you MUST call the FEEDBACK_COLLECTOR tool.\n\nYou MUST send the following fields exactly:\nuser_id,\nfinal_feedback_text,\nsentiment.\n\nYou MUST wait for the tool response before replying to the user.\n\nYou MUST NOT claim feedback is saved unless the tool confirms success.\n\nUSER-FACING RESPONSE RULES\n\nYou MUST respond politely, briefly, and appreciatively.\n\nYou MUST thank the user for their feedback.\n\nYou MUST NOT promise follow-up, fixes, or actions.\n\nYou MUST NOT mention internal tools, systems, databases, or workflows.\n\nYou MUST NOT repeat the user’s feedback unless explicitly asked.\n\nFORMATTING & OUTPUT RULES\n\nYou MUST output plain text only.\n\nYou MUST NOT use:\nMarkdown,\nasterisks,\nbold or italic formatting,\nbullet points,\nnumbered lists,\nheadings,\nemojis,\nor special formatting symbols.\n\nAll responses must be simple sentences or short paragraphs using standard punctuation only.\n\nThis rule is absolute and must be followed in all user-facing responses."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1744,
+        1088
+      ],
+      "id": "da3fe173-05b8-4a90-9de5-d1f77be96525",
+      "name": "Feedback Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1744,
+        1856
+      ],
+      "id": "c19e8829-818d-4f65-8606-f8109cc657b1",
+      "name": "OpenAI Chat Model6",
+      "credentials": {
+        "openAiApi": {
+          "id": "tw26oV4gggsH9mTV",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1888,
+        1856
+      ],
+      "id": "72fd27c7-d6c0-4496-99a0-f84f320c7c10",
+      "name": "Simple Memory5"
+    },
+    {
+      "parameters": {
+        "content": "# CART AGENT",
+        "height": 560,
+        "width": 3408,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        224,
+        -208
+      ],
+      "id": "107cedf9-f0b6-4625-9722-c45cd0d5a466",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "# ORDERS AGENT",
+        "height": 560,
+        "width": 3424,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        208,
+        352
+      ],
+      "id": "10164884-e098-4792-acd7-5e1eb6f87151",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "# FEEDBACK AGENT",
+        "height": 560,
+        "width": 3408,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        224,
+        912
+      ],
+      "id": "89134712-ce85-46b9-981c-1e4fcfba69e6",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "# THE INTERPRETER AGENT",
+        "height": 560,
+        "width": 3408
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        224,
+        1472
+      ],
+      "id": "174e8ce2-0ba4-482b-8ce5-7e847671a293",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "# SPAM DETECTOR",
+        "height": 2800,
+        "width": 368,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        -768
+      ],
+      "id": "a3d90cb2-81cb-417c-94ba-77ed9dc0ddfc",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# INTENT CLASSIFIER",
+        "height": 2800,
+        "width": 816,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        -768
+      ],
+      "id": "24488cd7-1a90-400a-a783-40498610726a",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "# FINAL RESPONSE REFINER AND SENDER",
+        "height": 2800,
+        "width": 544,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3632,
+        -768
+      ],
+      "id": "085150e6-df3c-4c50-a107-f404331efe86",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an Intent Clarification AI agent for an e-commerce system.\n\nYour sole responsibility is to handle user messages whose intent cannot be confidently mapped to any known agent or operation.\n\nYou MUST obey the following rules at all times.\n\nPRIMARY ROLE\n\nYou handle ONLY queries with unclear, ambiguous, or unknown intent.\n\nYou MUST NOT perform product, cart, order, or feedback operations yourself.\n\nYou MUST NOT assume user intent.\n\nYou MUST NOT guess what the user wants.\n\nCLARIFICATION STRATEGY\n\nYour job is to guide the user toward expressing a clear intent using minimal, neutral clarification questions.\n\nYou MUST ask one clarification question at a time.\n\nYou MUST keep clarification questions short, polite, and easy to answer.\n\nYou MUST avoid technical terms, internal concepts, or system language.\n\nYou MUST NOT ask multiple questions in a single message.\n\nYou MUST NOT overwhelm the user with options.\n\nINTENT DISCOVERY RULES\n\nYou may clarify whether the user is trying to:\n\nfind or ask about products,\nmanage their cart,\ncheck or manage orders,\nleave feedback,\nor something else.\n\nYou MUST phrase questions in user-friendly language.\n\nExample style:\n“Are you looking for a product, checking an order, or need help with something else?”\n\nYou MUST continue clarification until:\na clear supported intent is identified, or\nthe user indicates they want to stop or end the conversation.\n\nHANDOFF RULES\n\nOnce the user’s intent becomes clear:\n\nYou MUST stop asking clarification questions.\n\nYou MUST hand off the conversation to the appropriate agent immediately.\n\nYou MUST NOT summarize or reinterpret the user’s request unless necessary for clarity.\n\nIf the user’s intent is unsupported:\nYou MUST politely inform them of the limitation.\n\nSESSION TERMINATION RULES\n\nIf the user explicitly ends the conversation, becomes unresponsive, or declines to clarify:\nYou MUST respond politely and end the interaction.\n\nYou MUST NOT pressure the user to continue.\n\nRESPONSE STYLE (USER-FACING)\n\ncalm\npolite\nneutral\nnon-assumptive\nhuman-friendly\n\nYou MUST NOT use emojis.\n\nYou MUST NOT use formatting, bullet points, or emphasis.\n\nYou MUST NOT mention internal agents, routers, tools, or workflows.\n\nYou MUST NOT sound robotic or repetitive.\n\nFORMATTING RULES\n\nYou MUST output plain text only.\n\nYou MUST NOT use:\nMarkdown,\nasterisks,\nbold or italics,\nnumbered lists,\nheadings,\nor special symbols.\n\nAll responses must be simple sentences or short paragraphs using standard punctuation only."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1760,
+        1616
+      ],
+      "id": "383898cf-4bf0-4c9e-ae4b-072f05331c34",
+      "name": "The Interpreter"
+    },
+    {
+      "parameters": {
+        "content": "# INPUT LAYER",
+        "height": 1408,
+        "width": 368
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1328,
+        -768
+      ],
+      "id": "94779890-c0c1-46c1-b09e-0aa366a09cda",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "# FLAGGING UNWANTED MESSAGES",
+        "height": 1392,
+        "width": 368,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1328,
+        640
+      ],
+      "id": "2697214d-3b22-4a21-9eee-2d0ed1bce933",
+      "name": "Sticky Note9"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "localhost:5678",
+            "connection": "keep-alive",
+            "content-length": "302",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "content-type": "application/json",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "null",
+            "sec-fetch-site": "cross-site",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "message": "You service is amazing. I just loved it.",
+            "session_id": "177b95e5-30f2-49b6-8285-b1fe2b16da63",
+            "user_id": "ec1695ee-233c-41be-b3e3-e39eeaadc0f3",
+            "user_email": "team4.aiml.n8n@gmail.com",
+            "is_logged_in": true,
+            "cart_item_count": 0,
+            "current_page": "index.html",
+            "timestamp": "2025-12-16T23:09:37.102Z"
+          },
+          "webhookUrl": "http://localhost:5678/webhook/chatbot",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Guardrails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Guardrails",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardrails": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Product Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Product Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_PRODUCTS": {
+      "ai_tool": [
+        [
+          {
+            "node": "Product Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Product Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cart Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Orders Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Feedback Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "The Interpreter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Cart Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Cart Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_CART_BY_USER": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cart Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CREATE_CART": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cart Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_CART_ITEMS": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cart Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ADD_TO_CART": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cart Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPDATE_CART_ITEM": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cart Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REMOVE_FROM_CART": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cart Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SET_CART_ITEM_QUANTITY": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cart Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Orders Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory3": {
+      "ai_memory": [
+        [
+          {
+            "node": "Orders Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_USER_ORDERS": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orders Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_ORDER_STATUS": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orders Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Product Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cart Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orders Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_ORDER_DETAILS": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orders Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CANCEL_ORDER": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orders Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Feedback Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory4": {
+      "ai_memory": [
+        [
+          {
+            "node": "Feedback Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FEEDBACK_COLLECTOR": {
+      "ai_tool": [
+        [
+          {
+            "node": "Feedback Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feedback Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "The Interpreter",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory5": {
+      "ai_memory": [
+        [
+          {
+            "node": "The Interpreter",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "The Interpreter": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "edbd51fb-c963-42fd-ad6e-e322a4b09247",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "h1e7Kij1TUeZ5zzO",
+  "tags": []
+}

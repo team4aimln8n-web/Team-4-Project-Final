@@ -1,0 +1,282 @@
+{
+  "name": "GET_PRODUCT_DETAILS",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "get-product",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4b8950fc-6889-4225-a6f0-d7e5e215e980",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -256,
+        96
+      ],
+      "webhookId": "2a36a9e1-b4d0-40c4-b18e-092f076cfb46"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "products",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.query.product_id }}"
+            }
+          ]
+        }
+      },
+      "id": "6a880de1-8bf0-4725-a7a5-01ba12e2e314",
+      "name": "Fetch Product",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "product_images",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "product_id",
+              "keyValue": "={{ $json.query.product_id }}"
+            }
+          ]
+        }
+      },
+      "id": "216e4490-01d5-449c-afff-c51360bfbaa0",
+      "name": "Fetch Product Images",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "3866083e-dc69-45c5-8e59-6c4a59e9f6c5",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        256,
+        96
+      ],
+      "id": "df46c1eb-b751-4ef9-8ef0-cb84ffddafc9",
+      "name": "Combining Product(s) With Their Image(s)"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  return {\n    json: {\n      id: item.json.product_id,\n      name: item.json.name,\n      description: item.json.description,\n      price: item.json.price,\n      stock_quantity: item.json.stock_quantity,\n      category: item.json.category,\n      images: [\n        {\n          url: item.json.image_url,\n          is_primary: item.json.is_primary\n        }\n      ]\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        96
+      ],
+      "id": "ac32c11e-9810-4cc8-8bbd-882b161afa44",
+      "name": "Consolidating Final Output"
+    },
+    {
+      "parameters": {
+        "content": "## Fetching Products and Their Images",
+        "height": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -176
+      ],
+      "id": "ad97f1e5-19a0-4240-a8ce-70b483d005c8",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Making Request For Products' Retrieval",
+        "height": 640,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        -176
+      ],
+      "id": "90948234-5608-4ebf-bc5c-adf57d2d3b9d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Consolidating Final Results",
+        "height": 640,
+        "width": 720,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -176
+      ],
+      "id": "29224ede-3dc4-4f91-8d84-5426315b452f",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {
+    "Webhook Trigger": [
+      {
+        "json": {
+          "headers": {
+            "host": "team4aiml.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "en-US,en;q=0.9",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "2402:ad80:a3:42c9:349e:bb18:e319:1874",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "PK",
+            "cf-ray": "9a93ffadd3573e37-SIN",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "origin": "null",
+            "priority": "u=1, i",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "2402:ad80:a3:42c9:349e:bb18:e319:1874, 108.162.227.19",
+            "x-forwarded-host": "team4aiml.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-77-7df8c744bc-s67wc",
+            "x-is-trusted": "yes",
+            "x-real-ip": "2402:ad80:a3:42c9:349e:bb18:e319:1874"
+          },
+          "params": {},
+          "query": {
+            "product_id": "c78809ca-10b3-4ced-9351-7e11b3dc21c0"
+          },
+          "body": {},
+          "webhookUrl": "https://team4aiml.app.n8n.cloud/webhook/get-product",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Product",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Product Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Product": {
+      "main": [
+        [
+          {
+            "node": "Combining Product(s) With Their Image(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Product Images": {
+      "main": [
+        [
+          {
+            "node": "Combining Product(s) With Their Image(s)",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Combining Product(s) With Their Image(s)": {
+      "main": [
+        [
+          {
+            "node": "Consolidating Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidating Final Output": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b6936265-e27a-4cc0-9a52-909f2fb6aca2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "7kxsYf4MqazdCHz1",
+  "tags": []
+}

@@ -1,0 +1,100 @@
+{
+  "name": "COST_ESTIMATOR_HELPER_FOR_SUPABASE",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        16
+      ],
+      "id": "19b888f5-1a8f-45fe-a0db-18b04d25af86",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://supabase.com/pricing",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -48,
+        16
+      ],
+      "id": "78dadc1f-6a9e-4c97-a92c-cce597aabf0a",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "price",
+              "cssSelector": "div.relative.z-10.mx-auto.w-full.px-4.sm\\:px-6.lg\\:px-8"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        16
+      ],
+      "id": "32e41f9e-6afc-44f1-82c2-68de3d2a9610",
+      "name": "HTML"
+    }
+  ],
+  "pinData": {
+    "When clicking ‘Execute workflow’": [
+      {
+        "json": {
+          "query": "Provide the latest official Supabase pricing structure including plan names, monthly costs, limits for monthly active users (MAUs) if applicable, database storage (GB), file storage (GB), API request limits or rate info, Edge Functions (calls and included usage), Realtime connections limits, Authentication sign-ins limits, storage uploads, outbound data transfer included, and any per-unit overage pricing. Return all pricing tiers and overage rates as current."
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f6b09e0c-338c-426b-a28f-67d23dc300bf",
+  "meta": {
+    "instanceId": "5d40c27b713be158222408a4aa45fba1a1b1db618365b28674f30a8af93787b2"
+  },
+  "id": "sEfJpQvSBMjawmIS",
+  "tags": []
+}

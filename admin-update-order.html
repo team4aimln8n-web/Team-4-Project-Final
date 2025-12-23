@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Order Status - Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">🛍️ ShopHub Admin</a>
+            
+            <ul class="nav-menu">
+                <li><a href="index.html">Storefront</a></li>
+                <!-- Admin links will be inserted here dynamically by api.js -->
+            </ul>
+            
+            <div class="nav-icons">
+                <a href="cart.html" class="nav-icon">
+                    🛒
+                    <span id="cart-badge" class="cart-badge" style="display: none;">0</span>
+                </a>
+                <a href="login.html" id="login-link" class="nav-icon">👤</a>
+                <a href="#" id="user-link" class="nav-icon" style="display: none;" title="Profile">👤</a>
+                <button id="logout-btn" class="nav-icon" style="display: none; background: none; border: none; color: white; cursor: pointer;">Logout</button>
+            </div>
+            
+            <button class="mobile-menu-btn">☰</button>
+        </div>
+    </nav>
+
+    <!-- Update Order Section -->
+    <div class="container">
+        <div class="admin-container">
+            <div style="margin-bottom: 20px;">
+                <a href="admin-orders.html" class="btn-secondary" style="display: inline-block; width: auto;">← Back to Orders</a>
+            </div>
+
+            <h1 class="section-title">Update Order Status</h1>
+            <p class="section-subtitle">Change the status of customer orders</p>
+
+            <!-- Order Information Display -->
+            <div id="order-info-container">
+                <!-- Order info will be loaded here -->
+            </div>
+
+            <!-- Update Form -->
+            <div id="update-form-container" style="display: none;">
+                <div class="form-container">
+                    <h3 style="margin-bottom: 20px; color: var(--primary-black);">Update Order Status</h3>
+
+                    <form id="update-status-form">
+                        <div class="form-group">
+                            <label class="form-label">Admin Password *</label>
+                            <input type="password" id="admin-token" class="form-input" placeholder="Enter admin password" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">New Status *</label>
+                            <select id="new-status" class="form-select" required>
+                                <option value="">Select new status...</option>
+                                <option value="pending">⏳ Pending</option>
+                                <option value="confirmed">✓ Confirmed</option>
+                                <option value="processing">📦 Processing</option>
+                                <option value="shipped">🚚 Shipped</option>
+                                <option value="delivered">✅ Delivered</option>
+                                <option value="cancelled">❌ Cancelled</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Admin Notes (Optional)</label>
+                            <textarea id="admin-notes" class="form-textarea" placeholder="Add any notes about this status change..."></textarea>
+                        </div>
+
+                        <div class="alert alert-info mb-20">
+                            <span>ℹ️</span>
+                            <span>Updating the order status may trigger a notification email to the customer (if configured in n8n).</span>
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="font-size: 1.1em;">
+                            Update Order Status
+                        </button>
+                    </form>
+
+                    <!-- Status Flow Guide -->
+                    <div style="margin-top: 40px; padding: 20px; background: var(--light-gray); border-radius: 12px;">
+                        <h4 style="margin-bottom: 15px; color: var(--primary-black);">📋 Recommended Status Flow</h4>
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.95em;">
+                            <span class="order-status status-pending">Pending</span>
+                            <span>→</span>
+                            <span class="order-status status-confirmed">Confirmed</span>
+                            <span>→</span>
+                            <span class="order-status status-processing">Processing</span>
+                            <span>→</span>
+                            <span class="order-status status-shipped">Shipped</span>
+                            <span>→</span>
+                            <span class="order-status status-delivered">Delivered</span>
+                        </div>
+                        <p style="color: var(--text-light); margin-top: 15px; font-size: 0.9em;">
+                            <strong>Note:</strong> Orders can be cancelled at any stage before delivery.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="products.html">Products</a>
+                <a href="admin-add-product.html">Add Product</a>
+                <a href="admin-orders.html">Manage Orders</a>
+            </div>
+            <p>&copy; 2024 ShopHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="api.js"></script>
+    <script>
+        let currentOrder = null;
+
+        // Load order details
+        async function loadOrderInfo() {
+            const orderId = getUrlParameter('order_id');
+            const orderNumber = getUrlParameter('order_number');
+
+            if (!orderId) {
+                document.getElementById('order-info-container').innerHTML = `
+                    <div class="alert alert-error">
+                        <span>⚠️</span>
+                        <span>Order ID not found. Please select an order from the orders page.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            const container = document.getElementById('order-info-container');
+            showLoading('order-info-container');
+
+            try {
+                const response = await fetch(`${API_ENDPOINTS.GET_ORDER_DETAILS}?order_id=${orderId}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch order details');
+                }
+
+                currentOrder = await response.json();
+
+                if (!currentOrder || !currentOrder.id) {
+                    throw new Error('Order not found');
+                }
+
+                displayOrderInfo();
+                document.getElementById('update-form-container').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading order:', error);
+                container.innerHTML = `
+                    <div class="alert alert-error">
+                        <span>⚠️</span>
+                        <span>Failed to load order details: ${error.message}</span>
+                    </div>
+                `;
+            }
+        }
+
+        // Display order information
+        function displayOrderInfo() {
+            const order = currentOrder;
+            const container = document.getElementById('order-info-container');
+
+            const statusEmoji = {
+                pending: '⏳',
+                confirmed: '✓',
+                processing: '📦',
+                shipped: '🚚',
+                delivered: '✅',
+                cancelled: '❌'
+            };
+
+            container.innerHTML = `
+                <div class="order-card">
+                    <div class="order-header">
+                        <div>
+                            <h2 class="order-number">Order #${order.order_number}</h2>
+                            <p style="color: var(--text-light); font-size: 0.95em;">
+                                Placed on ${formatDate(order.created_at)}
+                            </p>
+                        </div>
+                        <span class="order-status status-${order.status}">
+                            ${statusEmoji[order.status] || '📋'} ${order.status}
+                        </span>
+                    </div>
+
+                    <div class="order-info">
+                        <div class="order-info-item">
+                            <strong>Customer Name</strong>
+                            ${order.shipping_address.full_name || 'N/A'}
+                        </div>
+                        <div class="order-info-item">
+                            <strong>Phone</strong>
+                            ${order.phone_number}
+                        </div>
+                        <div class="order-info-item">
+                            <strong>City</strong>
+                            ${order.shipping_address.city}
+                        </div>
+                        <div class="order-info-item">
+                            <strong>Total Amount</strong>
+                            ${formatPrice(order.total_amount)}
+                        </div>
+                        <div class="order-info-item">
+                            <strong>Payment Method</strong>
+                            ${order.payment_method || 'COD'}
+                        </div>
+                        <div class="order-info-item">
+                            <strong>Items</strong>
+                            ${order.items ? order.items.length : 0} items
+                        </div>
+                    </div>
+
+                    ${order.items && order.items.length > 0 ? `
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-gray);">
+                            <strong style="display: block; margin-bottom: 10px; color: var(--primary-black);">Order Items:</strong>
+                            ${order.items.map(item => `
+                                <div style="display: flex; justify-content: space-between; padding: 10px; background: var(--light-gray); border-radius: 5px; margin-bottom: 8px;">
+                                    <span>${item.product_name || item.name} × ${item.quantity}</span>
+                                    <span style="font-weight: 600;">${formatPrice(item.price_at_purchase * item.quantity)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-gray);">
+                        <strong style="display: block; margin-bottom: 10px; color: var(--primary-black);">Shipping Address:</strong>
+                        <p style="line-height: 1.6; color: var(--text-light);">
+                            ${order.shipping_address.street}<br>
+                            ${order.shipping_address.city}${order.shipping_address.state ? ', ' + order.shipping_address.state : ''}<br>
+                            ${order.shipping_address.postal_code}
+                        </p>
+                        ${order.notes ? `
+                            <p style="margin-top: 10px;">
+                                <strong>Delivery Notes:</strong><br>
+                                <span style="color: var(--text-light);">${order.notes}</span>
+                            </p>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Handle status update form submission
+        document.getElementById('update-status-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!currentOrder) {
+                showAlert('Order information not loaded', 'error');
+                return;
+            }
+
+            const adminToken = document.getElementById('admin-token').value.trim();
+            const newStatus = document.getElementById('new-status').value;
+            const adminNotes = document.getElementById('admin-notes').value.trim();
+
+            if (!adminToken || !newStatus) {
+                showAlert('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (newStatus === currentOrder.status) {
+                showAlert('Order is already in this status', 'error');
+                return;
+            }
+
+            // Disable submit button
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Updating...';
+
+            try {
+                const updateData = {
+                    admin_token: adminToken,
+                    order_id: currentOrder.id,
+                    new_status: newStatus,
+                    admin_notes: adminNotes
+                };
+
+                const response = await fetch(API_ENDPOINTS.ADMIN_UPDATE_ORDER_STATUS, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to update order status');
+                }
+
+                showAlert('Order status updated successfully!', 'success');
+
+                // Update current order object
+                currentOrder.status = newStatus;
+                displayOrderInfo();
+
+                // Reset form
+                e.target.reset();
+
+                // Redirect back to orders after a delay
+                setTimeout(() => {
+                    window.location.href = 'admin-orders.html';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error updating order status:', error);
+                showAlert('Failed to update status: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Update Order Status';
+            }
+        });
+
+        // Load order info when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOrderInfo();
+        });
+    </script>
+    <script type="module" src="/auth/logout.js"></script>
+</body>
+</html>

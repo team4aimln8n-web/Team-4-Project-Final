@@ -1,0 +1,186 @@
+{
+  "name": "CANCEL_ORDER",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        -48
+      ],
+      "id": "c06e69bd-d259-4ad9-8d4c-1c930cc74a27",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Recursively searches for 'order_id' key or a UUID pattern in any string value.\n * - Handles deep nesting, arrays, flat objects, and JSON strings.\n */\n\nfunction extractOrderId(data) {\n    let foundOrderId = null;\n    \n    // Regex for UUID (v4 is common): xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx\n    // This pattern is general enough to catch the required format.\n    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n\n    function traverse(value) {\n        if (foundOrderId !== null) return;\n\n        // Case 1: Value check - If the value is a string and matches the UUID pattern\n        if (typeof value === 'string' && uuidRegex.test(value)) {\n            // Found a valid-looking UUID, use it as the order_id\n            foundOrderId = value;\n            return;\n        }\n\n        // Case 2: JSON string → try parsing\n        if (typeof value === 'string') {\n            try {\n                const parsed = JSON.parse(value);\n                traverse(parsed);\n            } catch (e) {\n                // Not JSON → ignore\n            }\n            return;\n        }\n\n        // Case 3: Array → traverse each item\n        if (Array.isArray(value)) {\n            for (const item of value) {\n                traverse(item);\n                if (foundOrderId !== null) return;\n            }\n            return;\n        }\n\n        // Case 4: Object → inspect keys\n        if (typeof value === 'object' && value !== null) {\n            for (const key of Object.keys(value)) {\n                \n                // Priority Check: Key named 'order_id'\n                if (key === 'order_id') {\n                    // Ensures that even if the value is not a UUID, we take it if the key is explicitly named\n                    foundOrderId = value[key];\n                    return;\n                }\n                \n                // Recurse to check the value of the current key\n                traverse(value[key]);\n                if (foundOrderId !== null) return;\n            }\n        }\n    }\n\n    traverse(data);\n    return foundOrderId;\n}\n\n// n8n input (works for single or multiple items)\nconst inputData = $input.all();\n\n// Try extracting from entire payload\nconst orderId = extractOrderId(inputData);\n\n// The output structure should match the number of input items in n8n for best practice, \n// but since the goal is to find ONE order_id from the whole payload, we return a single item.\n// If you need the output to be replicated for every input item, use items.map().\nreturn [\n    {\n        json: {\n            order_id: orderId\n        }\n    }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        -48
+      ],
+      "id": "b3b536d6-78fb-401e-b9a7-cd41d0f7e9b5",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "orders",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.order_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "cancelled"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        448,
+        -48
+      ],
+      "id": "7ee52ae4-4d3d-47d8-8600-85596cbb4981",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "team4.aiml.prj@gmail.com",
+        "subject": "Order Cancelled",
+        "message": "=<!DOCTYPE html> <html> <head>     <meta charset=\"UTF-8\">     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">     <style>         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #333333; margin: 0; padding: 0; background-color: #f9f9f9; }         .container { max-width: 600px; margin: 20px auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }         .header { background-color: #ff4d4f; color: #ffffff; padding: 25px; text-align: center; }         .header h1 { margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }         .content { padding: 30px; }         .order-box { background-color: #fdf2f2; border: 1px solid #fbc4c4; border-radius: 6px; padding: 20px; margin-bottom: 25px; }         .order-title { font-weight: bold; color: #d32f2f; margin-bottom: 10px; display: block; }         .details-table { width: 100%; border-collapse: collapse; }         .details-table td { padding: 10px 0; border-bottom: 1px solid #eeeeee; }         .label { color: #777777; font-size: 14px; width: 40%; }         .value { color: #333333; font-weight: 600; font-size: 14px; text-align: right; }         .footer { background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 12px; color: #999999; }     </style> </head> <body>     <div class=\"container\">         <div class=\"header\">             <h1>Order Cancelled</h1>         </div>          <div class=\"content\">             <p>Hello <strong>Saleem Shahzad</strong>,</p>             <p>An order has been officially marked as <strong>cancelled</strong> in your store. Please review the details below to manage your inventory accordingly.</p>                          <div class=\"order-box\">                 <span class=\"order-title\">Summary for Order {{ $json.order_number }}</span>                 <table class=\"details-table\">                     <tr>                         <td class=\"label\">Total Amount</td>                         <td class=\"value\">PKR {{ $json.total_amount }}</td>                     </tr>                     <tr>                         <td class=\"label\">Payment Method</td>                         <td class=\"value\">{{ $json.payment_method }}</td>                     </tr>                     <tr>                         <td class=\"label\">Customer Phone</td>                         <td class=\"value\">{{ $json.phone_number }}</td>                     </tr>                     <tr>                         <td class=\"label\">Status</td>                         <td class=\"value\" style=\"color: #d32f2f;\">{{ $json.status }}</td>                     </tr>                 </table>             </div>              <h3 style=\"font-size: 16px; border-bottom: 2px solid #f4f4f4; padding-bottom: 10px;\">Shipping Information</h3>             <p style=\"font-size: 14px; color: #555555;\">                 <strong>Address:</strong> {{ $json.shipping_address.street }}, {{ $json.shipping_address.city }}, {{ $json.shipping_address.state }}, {{ $json.shipping_address.postal_code }}             </p>         </div>          <div class=\"footer\">             <p>This is an automated notification from your E-commerce Store Dashboard.</p>             <p>&copy; 2025 Store Management System</p>         </div>     </div> </body> </html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        -144
+      ],
+      "id": "322256e6-4bc4-43e7-9a58-8dc5445569aa",
+      "name": "Send a message",
+      "webhookId": "c5ca8bc1-510f-4834-97ac-1609774f8a5f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "AzK31zUOPtXk3Sre",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "39c8bdd7-52ef-480b-8d46-315d93e2117d",
+              "name": "message",
+              "value": "Order has been successfully cancelled. ",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "include": "except",
+        "excludeFields": "id,user_id,payment_method,shipping_address,notes,created_at",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        48
+      ],
+      "id": "8c86173c-27c9-4deb-9746-d53f56f0cff2",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "05a0fff8-96e6-4d75-a3c8-a5a6d225e8cb"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "fb440e0c-b5f4-4769-93ab-1f986abf9535",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "hmbk05SGjTsSNXFE",
+  "tags": []
+}

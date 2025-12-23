@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopHub - Your Online Store</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="chatbot.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">🛍️ ShopHub</a>
+            
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="orders.html">My Orders</a></li>
+            </ul>
+            
+            <div class="nav-icons">
+                <a href="cart.html" class="nav-icon">
+                    🛒
+                    <span id="cart-badge" class="cart-badge" style="display: none;">0</span>
+                </a>
+                <a href="login.html" id="login-link" class="nav-icon">👤</a>
+                <a href="#" id="user-link" class="nav-icon" style="display: none;" title="Profile">👤</a>
+                <button id="logout-btn" class="nav-icon" style="display: none; background: none; border: none; color: white; cursor: pointer;">Logout</button>
+            </div>
+            
+            <button class="mobile-menu-btn">☰</button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Welcome to ShopHub</h1>
+        <p>Discover amazing products at unbeatable prices</p>
+        <a href="products.html" class="hero-btn">Shop Now</a>
+    </section>
+
+    <!-- Featured Products Section -->
+    <div class="container">
+        <h2 class="section-title">Featured Products</h2>
+        <p class="section-subtitle">Check out our latest and most popular items</p>
+        
+        <div id="products-container" class="product-grid">
+            <!-- Products will be loaded here dynamically -->
+        </div>
+        
+        <div class="text-center mt-40">
+            <a href="products.html" class="btn-secondary">View All Products</a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="products.html">Products</a>
+                <a href="orders.html">My Orders</a>
+                <a href="cart.html">Cart</a>
+                <a href="login.html">Login</a>
+            </div>
+            <p>&copy; 2024 ShopHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts - CRITICAL: Load api.js first and WAIT for it -->
+    <script src="api.js"></script>
+    
+    <!-- Replace the products loading script in index.html with this enhanced version -->
+<script>
+console.log('🔍 Products script loaded');
+
+let allProducts = [];
+
+// Enhanced Add to Cart with visual feedback
+window.addToCartWithFeedback = async function(productId, buttonElement) {
+    console.log('🛒 addToCartWithFeedback called for product:', productId);
+    
+    // Get the button element if not provided
+    if (!buttonElement) {
+        buttonElement = event?.target;
+    }
+    
+    if (!buttonElement) {
+        console.error('Button element not found');
+        return;
+    }
+    
+    // Prevent multiple clicks
+    if (buttonElement.classList.contains('loading')) {
+        console.log('⏳ Already processing, ignoring click');
+        return;
+    }
+    
+    // Get userId
+    const userId = await getCurrentUserId();
+    
+    if (!userId) {
+        showAlert('Please login to add items to cart', 'error');
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 1500);
+        return;
+    }
+    
+    // Store original button text
+    const originalText = buttonElement.textContent;
+    
+    // Add loading state
+    buttonElement.classList.add('loading');
+    buttonElement.disabled = true;
+    
+    try {
+        const response = await fetch(API_ENDPOINTS.ADD_TO_CART, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                user_id: userId,
+                product_id: productId,
+                quantity: 1
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Remove loading, add success state
+            buttonElement.classList.remove('loading');
+            buttonElement.classList.add('success');
+            buttonElement.textContent = '✓ Added!';
+            
+            // Animate cart icon
+            const cartIcon = document.querySelector('.nav-icon[href="cart.html"]');
+            if (cartIcon) {
+                cartIcon.classList.add('cart-shake');
+                setTimeout(() => {
+                    cartIcon.classList.remove('cart-shake');
+                }, 500);
+            }
+            
+            // Animate badge
+            const badge = document.getElementById('cart-badge');
+            if (badge) {
+                badge.classList.add('badge-pulse');
+                setTimeout(() => {
+                    badge.classList.remove('badge-pulse');
+                }, 500);
+            }
+            
+            // Show toast notification
+            showToast('🛒 Item added to cart!');
+            
+            // Update cart badge
+            await updateCartBadge();
+            
+            // Reset button after delay
+            setTimeout(() => {
+                buttonElement.classList.remove('success');
+                buttonElement.textContent = originalText;
+                buttonElement.disabled = false;
+            }, 2000);
+            
+        } else {
+            throw new Error(result.message || 'Failed to add to cart');
+        }
+
+    } catch (error) {
+        console.error('❌ Error adding to cart:', error);
+        
+        // Remove loading state
+        buttonElement.classList.remove('loading');
+        buttonElement.textContent = originalText;
+        buttonElement.disabled = false;
+        
+        showAlert('Failed to add to cart: ' + error.message, 'error');
+    }
+};
+
+// Toast notification function
+function showToast(message, duration = 3000) {
+    // Remove existing toast if any
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Create toast
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.innerHTML = `
+        <span class="toast-icon">✓</span>
+        <span class="toast-message">${message}</span>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Remove after duration
+    setTimeout(() => {
+        toast.classList.add('toast-exit');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, duration);
+}
+
+// Load featured products
+async function loadFeaturedProducts() {
+    console.log('🔄 loadFeaturedProducts() called');
+    
+    const container = document.getElementById('products-container');
+    
+    // Show loading spinner
+    container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+    try {
+        // Wait for API_ENDPOINTS to be available
+        let attempts = 0;
+        while (typeof API_ENDPOINTS === 'undefined' && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        if (typeof API_ENDPOINTS === 'undefined') {
+            throw new Error('API configuration not loaded');
+        }
+        
+        console.log('📡 Fetching products from:', API_ENDPOINTS.GET_PRODUCTS);
+
+        // 🔥 ONLY IMPORTANT CHANGE: cached fetch instead of fetch()
+        const products = await fetchWithCache(API_ENDPOINTS.GET_PRODUCTS);
+
+        console.log('✅ Products loaded:', products.length);
+
+        // Show only first 8 products as featured
+        const featuredProducts = products.slice(0, 8);
+
+        if (featuredProducts.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <div class="empty-state-icon">📦</div>
+                    <h2>No Products Available</h2>
+                    <p>Check back soon for new arrivals!</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = featuredProducts.map(product => {
+            const imageUrl = product.images && product.images.length > 0 
+                ? product.images.find(img => img.is_primary)?.url || product.images[0].url
+                : 'https://via.placeholder.com/280x280?text=No+Image';
+            
+            const isOutOfStock = product.stock_quantity <= 0;
+
+            return `
+                <div class="product-card" onclick="window.location.href='product-details.html?id=${product.id}'">
+                    <img 
+                        src="${imageUrl}" 
+                        alt="${product.name}" 
+                        class="product-image" 
+                        onerror="this.src='https://via.placeholder.com/280x280?text=No+Image'"
+                    >
+                    <div class="product-info">
+                        <h3 class="product-name">${product.name}</h3>
+                        <p class="product-description">${truncateText(product.description || '', 80)}</p>
+                        <p class="product-price">${formatPrice(product.price)}</p>
+                        <p class="product-stock ${isOutOfStock ? 'out-of-stock' : ''}">
+                            ${isOutOfStock ? 'Out of Stock' : `In Stock: ${product.stock_quantity}`}
+                        </p>
+                        <button 
+                            class="btn-primary" 
+                            onclick="event.stopPropagation(); addToCartWithFeedback('${product.id}', this)"
+                            ${isOutOfStock ? 'disabled' : ''}
+                        >
+                            ${isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        console.log('✅ Products rendered to page');
+
+    } catch (error) {
+        console.error('❌ Error loading products:', error);
+
+        // ❗ User-friendly message ONLY (developer details stay in console)
+        container.innerHTML = `
+            <div class="alert alert-error" style="grid-column: 1 / -1;">
+                <span>⚠️</span>
+                <span>Unable to load products right now. Please try again shortly.</span>
+            </div>
+        `;
+    }
+}
+
+
+// Execute immediately when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📄 DOM loaded, loading products...');
+        loadFeaturedProducts();
+    });
+} else {
+    // DOM already loaded
+    console.log('📄 DOM already loaded, loading products immediately...');
+    loadFeaturedProducts();
+}
+
+// ALSO try to load after a short delay as backup
+setTimeout(() => {
+    const container = document.getElementById('products-container');
+    // Only load if container is still empty or showing loading
+    if (container && (container.innerHTML.includes('spinner') || container.children.length === 0)) {
+        console.log('⏰ Backup: Loading products after timeout');
+        loadFeaturedProducts();
+    }
+}, 1500);
+</script>
+    
+    <!-- Load chatbot LAST - it won't interfere now -->
+    <script src="chatbot.js"></script>
+</body>
+</html>

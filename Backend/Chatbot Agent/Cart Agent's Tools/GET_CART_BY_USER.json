@@ -1,0 +1,165 @@
+{
+  "name": "GET_CART_BY_USER",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6f288f38-5f46-4725-96a0-cc1f756181f5",
+              "name": "user_id",
+              "value": "={{ $json.user_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -16,
+        -16
+      ],
+      "id": "2da0fe3c-0f57-40b5-9105-5a2132f69392",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "cart",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "keyValue": "={{ $json.user_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        192,
+        -16
+      ],
+      "id": "31165883-6792-487a-b813-b190fd4fece7",
+      "name": "Get a row",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// The 'items' variable is an array containing all incoming data items from the previous node.\nconst inputItems = items;\n\n// Check if there are any input items AND if the first item has an 'id' property.\n// In n8n, an empty input from a previous node will result in the 'items' array being empty.\nif (inputItems.length > 0 && inputItems[0].json && inputItems[0].json.id) {\n  // Case 1: Input is NOT empty and contains 'id'\n\n  // Extract the 'id' value from the first item's JSON data.\n  const cartId = inputItems[0].json.id;\n\n  // Output the successful response.\n  return [\n    {\n      json: {\n        message: \"Cart IS found.\",\n        cart_id: cartId\n      }\n    }\n  ];\n\n} else {\n  // Case 2: Input is empty OR the 'id' key is missing\n\n  // Output the 'Not found' response.\n  return [\n    {\n      json: {\n        message: \"No cart found against this user's ID.\"\n      }\n    }\n  ];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        -16
+      ],
+      "id": "cf8221c7-b25b-48d1-9464-b823504ca400",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -432,
+        -16
+      ],
+      "id": "5f2b660f-594c-4718-8f6d-58746ad8904b",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Recursively searches for `user_id` in any structure:\n * - Handles deep nesting\n * - Handles arrays\n * - Handles flat objects\n * - Handles JSON strings\n * - Ignores parent key names\n */\n\nfunction extractUserId(data) {\n  let foundUserId = null;\n\n  function traverse(value) {\n    if (foundUserId !== null) return;\n\n    // Case 1: JSON string → try parsing\n    if (typeof value === 'string') {\n      try {\n        const parsed = JSON.parse(value);\n        traverse(parsed);\n      } catch (e) {\n        // Not JSON → ignore\n      }\n      return;\n    }\n\n    // Case 2: Array → traverse each item\n    if (Array.isArray(value)) {\n      for (const item of value) {\n        traverse(item);\n        if (foundUserId !== null) return;\n      }\n      return;\n    }\n\n    // Case 3: Object → inspect keys\n    if (typeof value === 'object' && value !== null) {\n      for (const key of Object.keys(value)) {\n        if (key === 'user_id') {\n          foundUserId = value[key];\n          return;\n        }\n        traverse(value[key]);\n        if (foundUserId !== null) return;\n      }\n    }\n  }\n\n  traverse(data);\n  return foundUserId;\n}\n\n// n8n input (works for single or multiple items)\nconst inputData = $input.all();\n\n// Try extracting from entire payload\nconst userId = extractUserId(inputData);\n\nreturn [\n  {\n    user_id: userId\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        -16
+      ],
+      "id": "285ca317-409a-4660-a6c4-14d3cd1c7ad4",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "{\"user_id\":\"ec1695ee-233c-41be-b3e3-e39eeaadc0f3\"}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "86d835f3-c9fc-42ec-b2a3-41bfe0516233",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "ev9aznc9mWVLvwmN",
+  "tags": []
+}

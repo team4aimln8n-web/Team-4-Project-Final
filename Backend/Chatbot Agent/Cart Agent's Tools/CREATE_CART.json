@@ -1,0 +1,120 @@
+{
+  "name": "CREATE_CART",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d2d01979-a48d-4625-ab08-b03db8491d08",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "tableId": "cart",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.user_id }}"
+            },
+            {
+              "fieldId": "created_at",
+              "fieldValue": "={{new Date().toISOString()}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "ecb9405e-e7a0-45f6-b4a1-9ea2935e4201",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// The 'items' variable is an array containing all incoming data items from the previous node.\nconst inputItems = items;\n\n// Initialize a variable for the cart ID.\nlet cartId = \"(Not Available)\";\n\n// Check if there is at least one input item and if the first item contains an 'id' key.\nif (inputItems.length > 0 && inputItems[0].json && inputItems[0].json.id) {\n  // If the 'id' is found, assign its value to cartId.\n  cartId = inputItems[0].json.id;\n}\n\n// Output the desired JSON structure using the determined cart ID value.\n// This output is returned regardless of the input data's contents.\nreturn [\n  {\n    json: {\n      message: \"Cart has been successfully created.\",\n      cart_id: cartId\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "29d69ec5-cd8b-47e5-aa25-e78fda5bdb3e",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Universal extractor for:\n * - user_id\n *\n * Handles:\n * - Deep nesting\n * - Arrays\n * - Flat objects\n * - Stringified JSON\n * - Raw UUID fallback\n * - Unknown parent keys\n */\n\n// UUID v4 pattern\nconst UUID_REGEX =\n  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n\nfunction extractUserId(data) {\n  let userId = null;\n\n  function traverse(value) {\n    if (userId) return;\n\n    // Case 1: String\n    if (typeof value === 'string') {\n      // Try JSON first\n      try {\n        const parsed = JSON.parse(value);\n        traverse(parsed);\n        return;\n      } catch {\n        // Raw UUID fallback\n        if (UUID_REGEX.test(value)) {\n          userId = value;\n        }\n        return;\n      }\n    }\n\n    // Case 2: Array\n    if (Array.isArray(value)) {\n      for (const item of value) {\n        traverse(item);\n      }\n      return;\n    }\n\n    // Case 3: Object\n    if (typeof value === 'object' && value !== null) {\n      for (const key of Object.keys(value)) {\n        const val = value[key];\n\n        // Explicit key wins\n        if (key === 'user_id') {\n          userId = val;\n          return;\n        }\n\n        traverse(val);\n        if (userId) return;\n      }\n    }\n  }\n\n  traverse(data);\n  return userId;\n}\n\n// n8n input (single or multiple items)\nconst inputData = $input.all();\n\nconst user_id = extractUserId(inputData);\n\nreturn [\n  {\n    user_id\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "3fe0dc09-4f4d-4c6c-8ca2-0e8639548e61",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0b680e63-081e-4193-bd37-935a1cc15f38",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "DFzFtxBw1HdGTIqu",
+  "tags": []
+}

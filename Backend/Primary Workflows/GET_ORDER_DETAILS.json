@@ -1,0 +1,446 @@
+{
+  "name": "GET_ORDER_DETAILS",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "get-order-details",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "173cd496-c777-4d77-9d9f-02c9e5eabf18",
+      "name": "Get Single Order Details",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -992,
+        816
+      ],
+      "webhookId": "13465be7-a174-4ff1-bbc5-aa19cb5d2d58"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "orders",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.query.order_id }}"
+            }
+          ]
+        }
+      },
+      "id": "7c3a786f-2d5c-4254-a2fe-ab40acbb0c80",
+      "name": "Get Order",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        816
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "order_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "order_id",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
+      "id": "952fde58-47e9-441e-a011-7f7c7495bda9",
+      "name": "Get Order Items",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        480
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1168,
+        784
+      ],
+      "id": "8a20e34a-d7dd-4597-9788-f22cd2237cfa",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "product_images",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "product_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "778ba9ac-bf15-43b6-a6c8-df9770dd0c5f",
+      "name": "Get Product's Image(s)",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "products",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        256
+      ],
+      "id": "fa33b238-606b-439c-8dde-18b2d32919a4",
+      "name": "Get Product(s) Details",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items\nconst items = $input.all();\n\n// If no items, return empty array\nif (!items.length) {\n  return [];\n}\n\n// Combine all items into a single array\nconst combinedData = items.map(item => item.json);\n\n// Return as a single item with the combined array\nreturn [\n  {\n    json: {\n      product_details: combinedData,\n      count: combinedData.length,\n      combined_at: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        256
+      ],
+      "id": "2764e6aa-1085-415e-a261-926a1ef795bb",
+      "name": "Consolidating Images"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items\nconst items = $input.all();\n\n// If no items, return empty array\nif (!items.length) {\n  return [];\n}\n\n// Combine all items into a single array\nconst combinedData = items.map(item => item.json);\n\n// Return as a single item with the combined array\nreturn [\n  {\n    json: {\n      products: combinedData,\n      count: combinedData.length,\n      combined_at: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        512
+      ],
+      "id": "41c33f11-83fa-48ad-8c4f-2e51f4f7eff9",
+      "name": "Consolidating Product(s) Information"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items\nconst items = $input.all();\n\n// If no items, return empty array\nif (!items.length) {\n  return [];\n}\n\n// Combine all items into a single array\nconst combinedData = items.map(item => item.json);\n\n// Return as a single item with the combined array\nreturn [\n  {\n    json: {\n      items: combinedData,\n      count: combinedData.length,\n      combined_at: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        704
+      ],
+      "id": "97fbd9c8-30b2-4075-872d-dc324588e81c",
+      "name": "Consolidating Order Item(s) Information"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 4,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        720,
+        752
+      ],
+      "id": "45e714ce-f080-4ad8-9ded-d026bacd5d12",
+      "name": "Combining All Raw Information"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input data\nconst inputData = $input.all();\n\n// Process the first order (single order per request)\nconst data = inputData[0].json;\n\n// Create a product lookup map for quick access\nconst productMap = {};\nif (data.products && Array.isArray(data.products)) {\n  data.products.forEach(product => {\n    productMap[product.id] = product;\n  });\n}\n\n// Create a product images lookup map from product_details\nconst imageMap = {};\nif (data.product_details && Array.isArray(data.product_details)) {\n  data.product_details.forEach(detail => {\n    // Store primary image or first image for each product\n    if (detail.is_primary || !imageMap[detail.product_id]) {\n      imageMap[detail.product_id] = detail.image_url;\n    }\n  });\n}\n\n// Transform items with product details and images\nconst transformedItems = data.items.map(orderItem => {\n  const product = productMap[orderItem.product_id];\n  const imageUrl = imageMap[orderItem.product_id] || 'https://via.placeholder.com/80x80?text=No+Image';\n  \n  return {\n    product_name: product ? product.name : 'Unknown Product',\n    name: product ? product.name : 'Unknown Product',\n    image_url: imageUrl,\n    price_at_purchase: orderItem.price_at_purchase,\n    quantity: orderItem.quantity\n  };\n});\n\n// Calculate total from items\nconst calculatedTotal = data.items.reduce((sum, orderItem) => {\n  return sum + (orderItem.price_at_purchase * orderItem.quantity);\n}, 0);\n\n// Return single object (not array) matching the expected format\nreturn {\n  json: {\n    id: data.id,\n    order_number: data.order_number,\n    created_at: data.created_at,\n    status: data.status,\n    total_amount: data.total_amount || calculatedTotal,\n    phone_number: data.phone_number,\n    notes: data.notes,\n    shipping_address: {\n      full_name: data.shipping_address.full_name,\n      street: data.shipping_address.street,\n      city: data.shipping_address.city,\n      state: data.shipping_address.state,\n      postal_code: data.shipping_address.postal_code\n    },\n    items: transformedItems\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        784
+      ],
+      "id": "12a234bd-f636-4a22-8f56-e5d37c880850",
+      "name": "Consolidating Final Output"
+    },
+    {
+      "parameters": {
+        "content": "## Input Layer",
+        "height": 1216,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1104,
+        -96
+      ],
+      "id": "89eeed73-81f5-4670-8ffe-1dd33621ff9b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Consolidating All Relevant Pieces of Info",
+        "height": 1216,
+        "width": 1664,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -784,
+        -96
+      ],
+      "id": "a96a13aa-2a40-4628-94c4-a0434e938ef5",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Refining And Then Sending Following Output to Frontend",
+        "height": 1216,
+        "width": 496,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -96
+      ],
+      "id": "fbd04e29-aa14-4f97-a68b-a3eb9170847a",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {
+    "Get Single Order Details": [
+      {
+        "json": {
+          "headers": {
+            "host": "team4aimlprj.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "en-US,en;q=0.9",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "223.123.1.161",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "PK",
+            "cf-ray": "9aac998b23c28342-SIN",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "if-none-match": "W/\"22-6OS7cK0FzqnV2NeDHdOSGS1bVUs\"",
+            "origin": "null",
+            "priority": "u=1, i",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "223.123.1.161, 172.68.242.116",
+            "x-forwarded-host": "team4aimlprj.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-52-6c4f4684d5-swjxv",
+            "x-is-trusted": "yes",
+            "x-real-ip": "223.123.1.161"
+          },
+          "params": {},
+          "query": {
+            "order_id": "bc3d142d-4656-495e-af9d-af0063eed3b5"
+          },
+          "body": {},
+          "webhookUrl": "https://team4aimlprj.app.n8n.cloud/webhook/get-order-details",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Get Single Order Details": {
+      "main": [
+        [
+          {
+            "node": "Get Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Order": {
+      "main": [
+        [
+          {
+            "node": "Get Order Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Combining All Raw Information",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Get Order Items": {
+      "main": [
+        [
+          {
+            "node": "Consolidating Order Item(s) Information",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Product(s) Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Product's Image(s)": {
+      "main": [
+        [
+          {
+            "node": "Consolidating Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Product(s) Details": {
+      "main": [
+        [
+          {
+            "node": "Consolidating Product(s) Information",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Product's Image(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidating Images": {
+      "main": [
+        [
+          {
+            "node": "Combining All Raw Information",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidating Product(s) Information": {
+      "main": [
+        [
+          {
+            "node": "Combining All Raw Information",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Consolidating Order Item(s) Information": {
+      "main": [
+        [
+          {
+            "node": "Combining All Raw Information",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Combining All Raw Information": {
+      "main": [
+        [
+          {
+            "node": "Consolidating Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidating Final Output": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f491eaa0-03b4-4e00-9fa7-2d082fa258ed",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "zHnZVBlQsDrjBU6G",
+  "tags": []
+}

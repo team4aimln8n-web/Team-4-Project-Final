@@ -1,0 +1,298 @@
+{
+  "name": "GET_PRODUCTS",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "get-products",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "46cbe944-d7e5-4d23-86ee-e5d477eb3735",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "43ef471d-c2e2-4535-8dbd-1bf6e80134c3"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "products",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "is_active",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "a16f204e-50c5-499d-9461-b636c79fdc94",
+      "name": "Fetch Active Products",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const productId = $input.item.json.id;\nreturn { json: { product_id: productId, ...($input.item.json) } };"
+      },
+      "id": "8fd19487-5bc0-411d-8fad-d24d9e8d39af",
+      "name": "Loop Over Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "product_images",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "product_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        }
+      },
+      "id": "74390b73-7c5a-42fd-acc6-c48be2b8de7f",
+      "name": "Fetch Product Images",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "e30e7e31-4aac-4002-8581-c4b4e38357ff",
+      "name": "Return JSON Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        512,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        48,
+        256
+      ],
+      "id": "54df6bfb-5b1a-451a-bf93-ea99a95c2025",
+      "name": "Combining Products and Their Images"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  return {\n    json: {\n      id: item.json.product_id,\n      name: item.json.name,\n      description: item.json.description,\n      price: item.json.price,\n      stock_quantity: item.json.stock_quantity,\n      category: item.json.category,\n      images: [\n        {\n          url: item.json.image_url,\n          is_primary: item.json.is_primary\n        }\n      ]\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        256
+      ],
+      "id": "8fd98393-e02a-47d1-908a-ea33a402eac0",
+      "name": "Refining Final Output"
+    },
+    {
+      "parameters": {
+        "content": "## Fetching Products and Their Images",
+        "height": 256,
+        "width": 1168
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        -80
+      ],
+      "id": "cc6222ef-7c8f-4788-a702-cb9c04b67164",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Consolidating Final Responses",
+        "height": 256,
+        "width": 1168,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        176
+      ],
+      "id": "f909b0c8-243a-4f61-8384-7fb20e94bc92",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {
+    "Webhook Trigger": [
+      {
+        "json": {
+          "headers": {
+            "host": "team4aiml.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "en-US,en;q=0.9",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "2402:ad80:a3:42c9:349e:bb18:e319:1874",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "PK",
+            "cf-ray": "9a9370e3d10fcdfd-SIN",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "if-none-match": "W/\"170d-dsV6NcY8SMS8z5g62grsbkLx058\"",
+            "origin": "null",
+            "priority": "u=1, i",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "2402:ad80:a3:42c9:349e:bb18:e319:1874, 172.71.124.102",
+            "x-forwarded-host": "team4aiml.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-77-7df8c744bc-9xngt",
+            "x-is-trusted": "yes",
+            "x-real-ip": "2402:ad80:a3:42c9:349e:bb18:e319:1874"
+          },
+          "params": {},
+          "query": {},
+          "body": {},
+          "webhookUrl": "https://team4aiml.app.n8n.cloud/webhook/get-products",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Active Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Active Products": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Products": {
+      "main": [
+        [
+          {
+            "node": "Fetch Product Images",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Combining Products and Their Images",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Fetch Product Images": {
+      "main": [
+        [
+          {
+            "node": "Combining Products and Their Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combining Products and Their Images": {
+      "main": [
+        [
+          {
+            "node": "Refining Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refining Final Output": {
+      "main": [
+        [
+          {
+            "node": "Return JSON Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a91cd0b0-e249-499b-901d-775eae022fc7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "ZiwX1PdFTDvfdRL7",
+  "tags": []
+}

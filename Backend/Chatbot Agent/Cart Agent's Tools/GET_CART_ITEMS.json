@@ -1,0 +1,139 @@
+{
+  "name": "GET_CART_ITEMS",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        -32
+      ],
+      "id": "d939788e-5262-47c7-91c6-e0e38b766cf5",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4d91338e-080d-40dc-ae3a-2df6cd7c972e",
+              "name": "cart_id",
+              "value": "={{ $json.cart_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        128,
+        -32
+      ],
+      "id": "465e60e4-a15e-41e0-a973-d7dafdc4426b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cart_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cart_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.cart_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        336,
+        -32
+      ],
+      "id": "73b3d5d8-a07b-42ef-8cfa-33ae4c11b382",
+      "name": "Get many rows",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Extracts cart_id from ANY possible structure:\n * - cart_id key (any depth)\n * - stringified JSON\n * - arrays\n * - flat objects\n * - raw UUID dumped under any key\n */\n\n// UUID v4 pattern (safe + strict)\nconst UUID_REGEX =\n  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n\nfunction extractCartId(data) {\n  let foundCartId = null;\n\n  function traverse(value) {\n    if (foundCartId !== null) return;\n\n    // Case 1: String\n    if (typeof value === 'string') {\n      // Try JSON parse\n      try {\n        const parsed = JSON.parse(value);\n        traverse(parsed);\n        return;\n      } catch (e) {\n        // Not JSON → check if UUID\n        if (UUID_REGEX.test(value)) {\n          foundCartId = value;\n        }\n        return;\n      }\n    }\n\n    // Case 2: Array\n    if (Array.isArray(value)) {\n      for (const item of value) {\n        traverse(item);\n        if (foundCartId !== null) return;\n      }\n      return;\n    }\n\n    // Case 3: Object\n    if (typeof value === 'object' && value !== null) {\n      for (const key of Object.keys(value)) {\n        // Highest priority: explicit cart_id\n        if (key === 'cart_id') {\n          foundCartId = value[key];\n          return;\n        }\n        traverse(value[key]);\n        if (foundCartId !== null) return;\n      }\n    }\n  }\n\n  traverse(data);\n  return foundCartId;\n}\n\n// n8n input (single or multiple items)\nconst inputData = $input.all();\n\nconst cartId = extractCartId(inputData);\n\nreturn [\n  {\n    cart_id: cartId\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        -32
+      ],
+      "id": "b7884a78-c5fc-41c0-9478-d3e0afde34e4",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {
+    "When clicking ‘Execute workflow’": [
+      {
+        "json": {
+          "query": "a6f77587-b207-4626-8494-5df71a45c54c"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "dc5ff992-1b8b-4afd-9873-f7020ad3166f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "Ck2RE4Qei0TasrAD",
+  "tags": []
+}

@@ -1,0 +1,467 @@
+{
+  "name": "OPENAI_COST",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        -48
+      ],
+      "id": "99c99860-828d-437f-9609-d309d837cd3f",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1e4JWPFoIPSwiMT0JNvwq0-4cHeRj9qJ1OlpiiEBggy4",
+          "mode": "list",
+          "cachedResultName": "Cost Analysis For AI Agents",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1e4JWPFoIPSwiMT0JNvwq0-4cHeRj9qJ1OlpiiEBggy4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1e4JWPFoIPSwiMT0JNvwq0-4cHeRj9qJ1OlpiiEBggy4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "No. of Executions Per Day": "={{ $json.query }}",
+            "Model": "GPT-5.2"
+          },
+          "matchingColumns": [
+            "Model"
+          ],
+          "schema": [
+            {
+              "id": "Name of Product",
+              "displayName": "Name of Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Model",
+              "displayName": "Model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Input Tokens Per Execution (At Most)",
+              "displayName": "Input Tokens Per Execution (At Most)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rate Per Input Token Per 1M ($)",
+              "displayName": "Rate Per Input Token Per 1M ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Input Cost Per Execution ($)",
+              "displayName": "Input Cost Per Execution ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Output Tokens Per Execution (At Most)",
+              "displayName": "Output Tokens Per Execution (At Most)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rate Per Output Token Per 1M ($)",
+              "displayName": "Rate Per Output Token Per 1M ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Output Cost Per Execution ($)",
+              "displayName": "Output Cost Per Execution ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rate Per Execution",
+              "displayName": "Rate Per Execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No. of Executions Per Day",
+              "displayName": "No. of Executions Per Day",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Monthly Cost ($)",
+              "displayName": "Total Monthly Cost ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        176,
+        -144
+      ],
+      "id": "754ee877-78d2-4d2b-a57b-c4fffda1380d",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zSnnGmTsuMNeuHhe",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1e4JWPFoIPSwiMT0JNvwq0-4cHeRj9qJ1OlpiiEBggy4",
+          "mode": "list",
+          "cachedResultName": "Cost Analysis For AI Agents",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1e4JWPFoIPSwiMT0JNvwq0-4cHeRj9qJ1OlpiiEBggy4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1e4JWPFoIPSwiMT0JNvwq0-4cHeRj9qJ1OlpiiEBggy4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "No. of Executions Per Day": "={{ $json.query }}",
+            "Model": "GPT-4.1 Mini"
+          },
+          "matchingColumns": [
+            "Model"
+          ],
+          "schema": [
+            {
+              "id": "Name of Product",
+              "displayName": "Name of Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Model",
+              "displayName": "Model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Input Tokens Per Execution (At Most)",
+              "displayName": "Input Tokens Per Execution (At Most)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rate Per Input Token Per 1M ($)",
+              "displayName": "Rate Per Input Token Per 1M ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Input Cost Per Execution ($)",
+              "displayName": "Input Cost Per Execution ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Output Tokens Per Execution (At Most)",
+              "displayName": "Output Tokens Per Execution (At Most)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rate Per Output Token Per 1M ($)",
+              "displayName": "Rate Per Output Token Per 1M ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Output Cost Per Execution ($)",
+              "displayName": "Output Cost Per Execution ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rate Per Execution",
+              "displayName": "Rate Per Execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No. of Executions Per Day",
+              "displayName": "No. of Executions Per Day",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Monthly Cost ($)",
+              "displayName": "Total Monthly Cost ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        176,
+        48
+      ],
+      "id": "9f4ef21e-129b-42af-8d23-06c2293a11d2",
+      "name": "Update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zSnnGmTsuMNeuHhe",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        48
+      ],
+      "id": "21251338-60cb-47b9-b0ae-7215b12eaa47",
+      "name": "Wait",
+      "webhookId": "a78c3056-b4ac-47d4-8662-43b3fca8989f"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1e4JWPFoIPSwiMT0JNvwq0-4cHeRj9qJ1OlpiiEBggy4",
+          "mode": "list",
+          "cachedResultName": "Cost Analysis For AI Agents",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1e4JWPFoIPSwiMT0JNvwq0-4cHeRj9qJ1OlpiiEBggy4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1e4JWPFoIPSwiMT0JNvwq0-4cHeRj9qJ1OlpiiEBggy4/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        48
+      ],
+      "id": "13a21a47-4c44-462f-8a1d-4e33c7bf96f2",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zSnnGmTsuMNeuHhe",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the last item from the input list\nconst lastItem = items[items.length - 1].json;\n\n// Extract the specific field\nconst totalCost = lastItem['Total Monthly Cost ($)'];\n\n// Return the result as a new item\nreturn [\n  {\n    json: {\n      total_monthly_cost: totalCost\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        48
+      ],
+      "id": "c9947b52-e409-4bdb-b355-47a59b098d08",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "1000"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cbd2ba9f-2d9a-4fd1-a547-48ab0a190c56",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5d40c27b713be158222408a4aa45fba1a1b1db618365b28674f30a8af93787b2"
+  },
+  "id": "vCXzeZhNHHzFvXZA",
+  "tags": []
+}

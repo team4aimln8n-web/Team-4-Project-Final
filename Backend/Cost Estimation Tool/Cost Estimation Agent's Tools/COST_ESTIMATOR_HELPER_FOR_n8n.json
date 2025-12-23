@@ -1,0 +1,92 @@
+{
+  "name": "COST_ESTIMATOR_HELPER_FOR_n8n",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "94f9c550-8f03-40df-b008-d219270942d3",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://n8n.io/pricing/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "11781938-2e13-4c38-a335-ef99b01ce547",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "price",
+              "cssSelector": "div.relative.row-span-5.mx-auto.grid.max-w-full.gap-x-4.gap-y-4.lg\\:grid-cols-2.lg\\:pt-4.xl\\:grid-cols-4"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "1436eb86-877e-4147-9203-acc8365632f9",
+      "name": "HTML"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "42f457f8-f842-4a1d-a1f4-94eed27bae90",
+  "meta": {
+    "instanceId": "5d40c27b713be158222408a4aa45fba1a1b1db618365b28674f30a8af93787b2"
+  },
+  "id": "VXSPeSdeFyc4ReQa",
+  "tags": []
+}

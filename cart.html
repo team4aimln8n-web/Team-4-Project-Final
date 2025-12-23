@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Cart - ShopHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="chatbot.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">🛍️ ShopHub</a>
+            
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="orders.html">My Orders</a></li>
+            </ul>
+            
+            <div class="nav-icons">
+                <a href="cart.html" class="nav-icon">
+                    🛒
+                    <span id="cart-badge" class="cart-badge" style="display: none;">0</span>
+                </a>
+                <a href="login.html" id="login-link" class="nav-icon">👤</a>
+                <a href="#" id="user-link" class="nav-icon" style="display: none;" title="Profile">👤</a>
+                <button id="logout-btn" class="nav-icon" style="display: none; background: none; border: none; color: white; cursor: pointer;">Logout</button>
+            </div>
+            
+            <button class="mobile-menu-btn">☰</button>
+        </div>
+    </nav>
+
+    <!-- Cart Section -->
+    <div class="container">
+        <h1 class="section-title">Shopping Cart</h1>
+        <p class="section-subtitle">Review your items before checkout</p>
+
+        <div id="cart-main-container">
+            <!-- Cart content will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="products.html">Products</a>
+                <a href="orders.html">My Orders</a>
+                <a href="cart.html">Cart</a>
+                <a href="login.html">Login</a>
+            </div>
+            <p>&copy; 2024 ShopHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <!-- Scripts -->
+<script src="api.js"></script>
+
+<!-- Cart Loading Script - Runs IMMEDIATELY after api.js -->
+<script>
+    console.log('🛒 Cart script loaded');
+    
+    let cartData = null;
+
+    // Load cart
+    async function loadCart() {
+        console.log('🔄 loadCart() called');
+        
+        if (!checkAuth()) return;
+
+        const userId = await getCurrentUserId();
+        const container = document.getElementById('cart-main-container');
+        
+        // Show loading spinner - use inline HTML to avoid function conflicts
+        container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+        try {
+            // Wait for API_ENDPOINTS to be available
+            let attempts = 0;
+            while (typeof API_ENDPOINTS === 'undefined' && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (typeof API_ENDPOINTS === 'undefined') {
+                throw new Error('API_ENDPOINTS not available');
+            }
+            
+            console.log('📡 Fetching cart from:', API_ENDPOINTS.VIEW_CART);
+            
+            const response = await fetch(`${API_ENDPOINTS.VIEW_CART}?user_id=${userId}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            cartData = await response.json();
+            console.log('✅ Cart loaded:', cartData);
+
+            displayCart();
+
+        } catch (error) {
+            console.error('❌ Error loading cart:', error);
+            container.innerHTML = `
+                <div class="alert alert-error">
+                    <span>⚠️</span>
+                    <span>Failed to load cart: ${error.message}. Please check your n8n webhook configuration and try again.</span>
+                </div>
+            `;
+        }
+    }
+
+    // Display cart
+    function displayCart() {
+        const container = document.getElementById('cart-main-container');
+
+        if (!cartData || !cartData.items || cartData.items.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🛒</div>
+                    <h2>Your Cart is Empty</h2>
+                    <p>Add some products to get started!</p>
+                    <div class="mt-20">
+                        <a href="products.html" class="btn-primary" style="display: inline-block; width: auto;">Browse Products</a>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        const cartTotal = cartData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+        container.innerHTML = `
+            <div class="cart-container">
+                <!-- Cart Items -->
+                <div class="cart-items-section">
+                    ${cartData.items.map(item => {
+                        const imageUrl = item.image_url || 'https://via.placeholder.com/120x120?text=No+Image';
+                        const subtotal = item.price * item.quantity;
+
+                        return `
+                            <div class="cart-item" id="cart-item-${item.cart_item_id}">
+                                <img src="${imageUrl}" alt="${item.name}" class="cart-item-image" onerror="this.src='https://via.placeholder.com/120x120?text=No+Image'">
+                                
+                                <div class="cart-item-details">
+                                    <h3 class="cart-item-name">${item.name}</h3>
+                                    <p class="cart-item-price">${formatPrice(item.price)} each</p>
+                                    
+                                    <div class="quantity-controls">
+                                        <button class="quantity-btn" onclick="updateQuantity('${item.cart_item_id}', ${item.quantity - 1})">−</button>
+                                        <span class="quantity-display">${item.quantity}</span>
+                                        <button class="quantity-btn" onclick="updateQuantity('${item.cart_item_id}', ${item.quantity + 1})">+</button>
+                                    </div>
+                                    
+                                    <p style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">
+                                        Subtotal: ${formatPrice(subtotal)}
+                                    </p>
+                                    
+                                    <button class="btn-remove" onclick="removeFromCart('${item.cart_item_id}')">
+                                        🗑️ Remove
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+
+                <!-- Cart Summary -->
+                <div class="cart-summary">
+                    <h2>Order Summary</h2>
+                    
+                    <div class="summary-row">
+                        <span>Items (${cartData.items.length}):</span>
+                        <span>${formatPrice(cartTotal)}</span>
+                    </div>
+                    
+                    <div class="summary-row">
+                        <span>Shipping:</span>
+                        <span>FREE</span>
+                    </div>
+                    
+                    <div class="summary-total">
+                        <span>Total:</span>
+                        <span>${formatPrice(cartTotal)}</span>
+                    </div>
+                    
+                    <button class="btn-primary mt-20" onclick="proceedToCheckout()" style="font-size: 1.1em;">
+                        Proceed to Checkout
+                    </button>
+                    
+                    <a href="products.html" class="btn-secondary mt-20" style="width: 100%; text-align: center;">
+                        Continue Shopping
+                    </a>
+                </div>
+            </div>
+        `;
+        
+        console.log('✅ Cart rendered to page');
+    }
+
+    // Update quantity
+    async function updateQuantity(cartItemId, newQuantity) {
+        if (newQuantity < 1) {
+            removeFromCart(cartItemId);
+            return;
+        }
+
+        try {
+            const response = await fetch(API_ENDPOINTS.UPDATE_CART_ITEM, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    cart_item_id: cartItemId,
+                    new_quantity: newQuantity
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Reload cart to show updated prices
+                await loadCart();
+                showAlert('Quantity updated', 'success');
+            } else {
+                showAlert('Failed to update quantity: ' + (result.message || 'Unknown error'), 'error');
+            }
+
+        } catch (error) {
+            console.error('Error updating quantity:', error);
+            showAlert('Failed to update quantity. Please try again.', 'error');
+        }
+    }
+
+    // Remove from cart
+    async function removeFromCart(cartItemId) {
+        if (!confirm('Are you sure you want to remove this item from your cart?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(API_ENDPOINTS.REMOVE_FROM_CART, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    cart_item_id: cartItemId
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert('Item removed from cart', 'success');
+                // Reload cart
+                await loadCart();
+                updateCartBadge();
+            } else {
+                showAlert('Failed to remove item: ' + (result.message || 'Unknown error'), 'error');
+            }
+
+        } catch (error) {
+            console.error('Error removing item:', error);
+            showAlert('Failed to remove item. Please try again.', 'error');
+        }
+    }
+
+    // Proceed to checkout
+    function proceedToCheckout() {
+        if (!cartData || !cartData.items || cartData.items.length === 0) {
+            showAlert('Your cart is empty', 'error');
+            return;
+        }
+
+        window.location.href = 'checkout.html';
+    }
+
+    // Execute immediately when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM loaded, loading cart...');
+            loadCart();
+        });
+    } else {
+        // DOM already loaded
+        console.log('📄 DOM already loaded, loading cart immediately...');
+        loadCart();
+    }
+    
+    // ALSO try to load after a short delay as backup
+    setTimeout(() => {
+        const container = document.getElementById('cart-main-container');
+        // Only load if container is still empty or showing loading
+        if (container && (container.innerHTML.includes('spinner') || container.children.length === 0)) {
+            console.log('⏰ Backup: Loading cart after timeout');
+            loadCart();
+        }
+    }, 1500);
+</script>
+
+<!-- Load chatbot LAST - it won't interfere now -->
+<script src="chatbot.js"></script>
+</body>
+</html>

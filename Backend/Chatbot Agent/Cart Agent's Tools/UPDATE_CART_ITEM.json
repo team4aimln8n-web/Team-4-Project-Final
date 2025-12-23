@@ -1,0 +1,198 @@
+{
+  "name": "UPDATE_CART_ITEM",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -352,
+        -80
+      ],
+      "id": "763056b9-0ff4-4850-a984-1dec7b2dddd2",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Universal extractor for:\n * - cart_id\n * - product_id\n * - quantity\n *\n * Handles:\n * - Deep nesting\n * - Arrays\n * - Flat objects\n * - Stringified JSON\n * - Raw UUIDs / numbers\n */\n\n// UUID v4 pattern\nconst UUID_REGEX =\n  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n\nfunction extractFields(data) {\n  const result = {\n    cart_id: null,\n    product_id: null,\n    quantity: null,\n  };\n\n  function traverse(value) {\n    if (\n      result.cart_id !== null &&\n      result.product_id !== null &&\n      result.quantity !== null\n    ) {\n      return;\n    }\n\n    // Case 1: String\n    if (typeof value === 'string') {\n      // Try JSON\n      try {\n        const parsed = JSON.parse(value);\n        traverse(parsed);\n        return;\n      } catch (e) {\n        // UUID fallback\n        if (UUID_REGEX.test(value)) {\n          if (result.cart_id === null) {\n            result.cart_id = value;\n          } else if (result.product_id === null) {\n            result.product_id = value;\n          }\n        }\n        return;\n      }\n    }\n\n    // Case 2: Number → quantity fallback\n    if (typeof value === 'number') {\n      if (result.quantity === null) {\n        result.quantity = value;\n      }\n      return;\n    }\n\n    // Case 3: Array\n    if (Array.isArray(value)) {\n      for (const item of value) {\n        traverse(item);\n      }\n      return;\n    }\n\n    // Case 4: Object\n    if (typeof value === 'object' && value !== null) {\n      for (const key of Object.keys(value)) {\n        const val = value[key];\n\n        // Explicit keys always win\n        if (key === 'cart_id') {\n          result.cart_id = val;\n        } else if (key === 'product_id') {\n          result.product_id = val;\n        } else if (key === 'quantity') {\n          result.quantity = val;\n        } else {\n          traverse(val);\n        }\n      }\n    }\n  }\n\n  traverse(data);\n  return result;\n}\n\n// n8n input\nconst inputData = $input.all();\n\nconst { cart_id, product_id, quantity } = extractFields(inputData);\n\nreturn [\n  {\n    cart_id,\n    product_id,\n    quantity,\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        -80
+      ],
+      "id": "6f63d1df-87b6-4136-a8ea-b92d90ac3430",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "cart_items",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "product_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.product_id }}"
+            },
+            {
+              "keyName": "cart_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.cart_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "quantity",
+              "fieldValue": "={{ $json.quantity +  $('Code in JavaScript').first().json.quantity }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -80
+      ],
+      "id": "6eb2df6a-8b38-402d-938b-245eafb1abb5",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "cart_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cart_id",
+              "keyValue": "={{ $json.cart_id }}"
+            },
+            {
+              "keyName": "product_id",
+              "keyValue": "={{ $json.product_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        96,
+        -80
+      ],
+      "id": "1fc8cae6-eb10-42ef-949a-43ee94794873",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "t66pCgG2WshQiige",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f3a5aa7a-2c37-4718-89db-188d392664e9",
+              "name": "message",
+              "value": "=Quantity has been successfullly update from {{ $('Get a row').item.json.quantity }} to {{ $json.quantity }}. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        -80
+      ],
+      "id": "2a4b3d1b-a7ca-4d5c-b7b9-5e64ad1a17c5",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "{\"cart_id\":\"69a4cbd4-b91d-4fef-abc2-20eb7b383656\",\"product_id\":\"d85e37c2-fe4b-41a8-b7ef-ec7094c04cb3\",\"quantity\":5}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7af3dcc9-b416-4682-809a-40c127093437",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f7b993dd14e2f708b427acbff5d0127f9a8bd731f141e235e9561c1d080632e9"
+  },
+  "id": "rQTiMKpqkBGx2BPW",
+  "tags": []
+}
