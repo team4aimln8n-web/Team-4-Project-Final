@@ -121,15 +121,7 @@ async function loadOrderDetails() {
         
         displayOrderDetails(order);
 
-    } catch (error) {
-        console.error('❌ Error loading order details:', error);
-        container.innerHTML = `
-            <div class="alert alert-error">
-                <span>⚠️</span>
-                <span>Failed to load order details: ${error.message}. The order may not exist or there may be a connection issue.</span>
-            </div>
-        `;
-    }
+    } catch (error) { console.error('❌ Error loading products:', error); showError(container, error, 'orderDetails'); }
 }
 
 // Display order details

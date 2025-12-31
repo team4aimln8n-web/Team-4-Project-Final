@@ -73,6 +73,35 @@ async function fetchWithCache(url, options = {}) {
 }
 
 
+/****************************************************
+ * GLOBAL ERROR ABSTRACTION
+ * - Devs get details (console)
+ * - Users get friendly messages
+ ****************************************************/
+
+function translateErrorForUser(error, context) {
+
+    // Definitely offline
+    if (!navigator.onLine) {
+        return "You appear to be offline. Please check your internet connection.";
+    }
+
+    // Fetch failed while online (ambiguous case)
+    if (error instanceof TypeError) {
+        return "Unable to connect at the moment. Please check your connection or try again shortly.";
+    }
+
+    // HTTP errors with response (optional future-proofing)
+    if (error.message && error.message.includes('HTTP')) {
+        return "Our servers are temporarily unavailable. Please try again shortly.";
+    }
+
+    // Fallback
+    return "Something went wrong. Please try again.";
+}
+
+
+
 
 // ==============================================
 // SUPABASE INITIALIZATION
@@ -684,6 +713,18 @@ if (document.readyState === 'loading') {
         await initializePage();
     });
 }
+
+function showError(container, error, context) {
+    const userMessage = translateErrorForUser(error, context);
+
+    container.innerHTML = `
+        <div class="alert alert-error" style="grid-column: 1 / -1;">
+            <span>⚠️</span>
+            <span>${userMessage}</span>
+        </div>
+    `;
+}
+
 
 // ==============================================
 // EXPORT FUNCTIONS FOR GLOBAL USE

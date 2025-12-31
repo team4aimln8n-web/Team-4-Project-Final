@@ -120,17 +120,10 @@ async function loadProductDetails() {
         displayProductDetails();
 
     } catch (error) {
-        console.error('❌ Error loading product details:', error);
-        container.innerHTML = `
-            <div class="alert alert-error">
-                <span>⚠️</span>
-                <span>Failed to load product details: ${error.message}. The product may not exist or there may be a connection issue.</span>
-            </div>
-            <div class="text-center mt-20">
-                <a href="products.html" class="btn-primary" style="display: inline-block; width: auto;">Back to Products</a>
-            </div>
-        `;
-    }
+    console.error('❌ Error loading product details:', error);
+    showError(container, error, 'productDetail');
+}
+
 }
 
 // Display product details

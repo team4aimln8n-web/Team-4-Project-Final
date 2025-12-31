@@ -129,14 +129,9 @@ async function loadOrders() {
         
         displayOrders(allOrders);
     } catch (error) {
-        console.error('❌ Error loading orders:', error);
-        container.innerHTML = `
-            <div class="alert alert-error">
-                <span>⚠️</span>
-                <span>Failed to load orders: ${error.message}. Please check your n8n webhook configuration and try again.</span>
-            </div>
-        `;
-    }
+    console.error('❌ Error loading orders:', error);
+    showError(container, error, 'orders');
+}
 }
 
 // Display orders

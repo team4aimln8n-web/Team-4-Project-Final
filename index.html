@@ -290,16 +290,10 @@ async function loadFeaturedProducts() {
         console.log('✅ Products rendered to page');
 
     } catch (error) {
-        console.error('❌ Error loading products:', error);
+    console.error('❌ Error loading featured products:', error);
+    showError(container, error, 'featuredProducts');
+}
 
-        // ❗ User-friendly message ONLY (developer details stay in console)
-        container.innerHTML = `
-            <div class="alert alert-error" style="grid-column: 1 / -1;">
-                <span>⚠️</span>
-                <span>Unable to load products right now. Please try again shortly.</span>
-            </div>
-        `;
-    }
 }
 
 
