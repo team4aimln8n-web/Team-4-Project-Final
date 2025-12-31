@@ -2,7 +2,7 @@
  * SIMPLE CLIENT-SIDE CACHE (ZERO COST)
  ****************************************************/
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 1 * 60 * 1000; // 5 minutes
 
 // In-memory cache (fastest)
 const memoryCache = {};
@@ -724,6 +724,53 @@ function showError(container, error, context) {
         </div>
     `;
 }
+
+
+
+
+function renderFeaturedProducts(products, container) {
+    if (!products || products.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <div class="empty-state-icon">📦</div>
+                <h2>No Products Available</h2>
+                <p>Check back soon for new arrivals!</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = products.map(product => {
+        const imageUrl = product.images && product.images.length > 0
+            ? product.images.find(img => img.is_primary)?.url || product.images[0].url
+            : 'https://via.placeholder.com/280x280?text=No+Image';
+
+        const isOutOfStock = product.stock_quantity <= 0;
+
+        return `
+            <div class="product-card" onclick="window.location.href='product-details.html?id=${product.id}'">
+                <img src="${imageUrl}" alt="${product.name}" class="product-image"
+                     onerror="this.src='https://via.placeholder.com/280x280?text=No+Image'">
+                <div class="product-info">
+                    <h3 class="product-name">${product.name}</h3>
+                    <p class="product-description">${truncateText(product.description || '', 80)}</p>
+                    <p class="product-price">${formatPrice(product.price)}</p>
+                    <p class="product-stock ${isOutOfStock ? 'out-of-stock' : ''}">
+                        ${isOutOfStock ? 'Out of Stock' : `In Stock: ${product.stock_quantity}`}
+                    </p>
+                    <button
+                        class="btn-primary"
+                        onclick="event.stopPropagation(); addToCartWithFeedback('${product.id}', this)"
+                        ${isOutOfStock ? 'disabled' : ''}
+                    >
+                        ${isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 
 
 // ==============================================

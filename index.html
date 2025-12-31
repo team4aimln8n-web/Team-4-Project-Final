@@ -214,84 +214,51 @@ function showToast(message, duration = 3000) {
 // Load featured products
 async function loadFeaturedProducts() {
     console.log('🔄 loadFeaturedProducts() called');
-    
+
     const container = document.getElementById('products-container');
-    
-    // Show loading spinner
-    container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
+    /* --------------------------------------------------
+       1️⃣ INSTANT FIRST PAINT — STATIC BOOTSTRAP JSON
+    -------------------------------------------------- */
     try {
-        // Wait for API_ENDPOINTS to be available
-        let attempts = 0;
-        while (typeof API_ENDPOINTS === 'undefined' && attempts < 50) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
+        const staticResponse = await fetch('data/featured-products.json');
+        if (staticResponse.ok) {
+            const staticProducts = await staticResponse.json();
+            renderFeaturedProducts(staticProducts, container);
+            console.log('⚡ Static featured products rendered');
         }
-        
-        if (typeof API_ENDPOINTS === 'undefined') {
-            throw new Error('API configuration not loaded');
-        }
-        
-        console.log('📡 Fetching products from:', API_ENDPOINTS.GET_PRODUCTS);
+    } catch (e) {
+        console.warn('⚠️ Static bootstrap JSON not available');
+    }
 
-        // 🔥 ONLY IMPORTANT CHANGE: cached fetch instead of fetch()
-        const products = await fetchWithCache(API_ENDPOINTS.GET_PRODUCTS);
+    /* --------------------------------------------------
+       2️⃣ LIVE DATA (CACHED) — BACKGROUND UPGRADE
+    -------------------------------------------------- */
+    /* --------------------------------------------------
+   2️⃣ LIVE DATA (CACHED) — BACKGROUND UPGRADE
+-------------------------------------------------- */
+try {
+    let attempts = 0;
+    while (typeof API_ENDPOINTS === 'undefined' && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+    }
 
-        console.log('✅ Products loaded:', products.length);
+    if (typeof API_ENDPOINTS === 'undefined') {
+        throw new Error('API_ENDPOINTS not available');
+    }
 
-        // Show only first 8 products as featured
-        const featuredProducts = products.slice(0, 8);
+    console.log('📡 Fetching featured products from:', API_ENDPOINTS.GET_PRODUCTS);
 
-        if (featuredProducts.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state" style="grid-column: 1 / -1;">
-                    <div class="empty-state-icon">📦</div>
-                    <h2>No Products Available</h2>
-                    <p>Check back soon for new arrivals!</p>
-                </div>
-            `;
-            return;
-        }
+    const products = await fetchWithCache(API_ENDPOINTS.GET_PRODUCTS);
+    const featuredProducts = products.slice(0, 8);
 
-        container.innerHTML = featuredProducts.map(product => {
-            const imageUrl = product.images && product.images.length > 0 
-                ? product.images.find(img => img.is_primary)?.url || product.images[0].url
-                : 'https://via.placeholder.com/280x280?text=No+Image';
-            
-            const isOutOfStock = product.stock_quantity <= 0;
+    renderFeaturedProducts(featuredProducts, container);
+    console.log('✅ Live featured products rendered');
 
-            return `
-                <div class="product-card" onclick="window.location.href='product-details.html?id=${product.id}'">
-                    <img 
-                        src="${imageUrl}" 
-                        alt="${product.name}" 
-                        class="product-image" 
-                        onerror="this.src='https://via.placeholder.com/280x280?text=No+Image'"
-                    >
-                    <div class="product-info">
-                        <h3 class="product-name">${product.name}</h3>
-                        <p class="product-description">${truncateText(product.description || '', 80)}</p>
-                        <p class="product-price">${formatPrice(product.price)}</p>
-                        <p class="product-stock ${isOutOfStock ? 'out-of-stock' : ''}">
-                            ${isOutOfStock ? 'Out of Stock' : `In Stock: ${product.stock_quantity}`}
-                        </p>
-                        <button 
-                            class="btn-primary" 
-                            onclick="event.stopPropagation(); addToCartWithFeedback('${product.id}', this)"
-                            ${isOutOfStock ? 'disabled' : ''}
-                        >
-                            ${isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-        console.log('✅ Products rendered to page');
-
-    } catch (error) {
+} catch (error) {
     console.error('❌ Error loading featured products:', error);
-    showError(container, error, 'featuredProducts');
+    showError(container, error, 'featured-products');
 }
 
 }
