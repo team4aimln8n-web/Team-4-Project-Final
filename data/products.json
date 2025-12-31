@@ -1,0 +1,128 @@
+[
+  {
+    "id": "f171e372-9719-44ee-9d83-34db49880474",
+    "name": "Highlighter Set",
+    "description": "Set of 6 pastel highlighters",
+    "price": 5.49,
+    "stock_quantity": 280,
+    "category": "Stationery",
+    "images": [
+      {
+        "url": "https://img.drz.lazcdn.com/static/pk/p/0c7d3413dc6d671a65e96bc100acd8f2.jpg_720x720q80.jpg",
+        "is_primary": true
+      }
+    ]
+  },
+  {
+    "id": "d885f8ae-1b9f-4f51-955c-7408c54bb7b2",
+    "name": "File Folder Set",
+    "description": "Set of 10 plastic file folders",
+    "price": 8.49,
+    "stock_quantity": 210,
+    "category": "Stationery",
+    "images": [
+      {
+        "url": "https://img.drz.lazcdn.com/static/pk/p/e223ace6fcf40261dcf4960e64b01308.jpg_720x720q80.jpg",
+        "is_primary": true
+      }
+    ]
+  },
+  {
+    "id": "f5d472ee-6743-4927-b339-6d90a9111b66",
+    "name": "Men T-Shirt Black",
+    "description": "Cotton round neck t-shirt",
+    "price": 11.99,
+    "stock_quantity": 190,
+    "category": "Clothing",
+    "images": [
+      {
+        "url": "https://freshcleantees.com/cdn/shop/files/CREW-NECK-Black-ghost.jpg",
+        "is_primary": true
+      }
+    ]
+  },
+  {
+    "id": "d854945c-c163-4f0f-bd9e-65b6e00921fc",
+    "name": "Coffee Mug Black",
+    "description": "Minimal ceramic mug",
+    "price": 6.99,
+    "stock_quantity": 220,
+    "category": "Home",
+    "images": [
+      {
+        "url": "https://m.media-amazon.com/images/I/511aSd025YL._AC_UF894,1000_QL80_.jpg",
+        "is_primary": true
+      }
+    ]
+  },
+  {
+    "id": "e4f0e08b-2f1b-4130-ade3-7d199163b21c",
+    "name": "Cushion Cover",
+    "description": "Decorative cushion cover",
+    "price": 5.99,
+    "stock_quantity": 300,
+    "category": "Home",
+    "images": [
+      {
+        "url": "https://img.kwcdn.com/product/Fancyalgo/VirtualModelMatting/9009d563aab5c4785eab1d2edc201014.jpg",
+        "is_primary": true
+      }
+    ]
+  },
+  {
+    "id": "e464b5ec-7abc-4d4a-a465-24ba41cb09c1",
+    "name": "Hand Grip Strengthener",
+    "description": "Adjustable hand grip tool",
+    "price": 7.49,
+    "stock_quantity": 180,
+    "category": "Health",
+    "images": [
+      {
+        "url": "https://www.shopaholic.pk/cdn/shop/files/hand-gripper-with-counter.jpg",
+        "is_primary": true
+      }
+    ]
+  },
+  {
+    "id": "f036c42c-c1b1-4493-87f6-980dc90a51a2",
+    "name": "School Bag",
+    "description": "Durable school backpack",
+    "price": 24.99,
+    "stock_quantity": 110,
+    "category": "Bags",
+    "images": [
+      {
+        "url": "https://toygenix.com.pk/cdn/shop/files/Price_In_Pakistan_Toygenix.com.pk_-_2024-09-10T170217.286.jpg",
+        "is_primary": true
+      }
+    ]
+  },
+  {
+    "id": "fbd5be88-e9af-4148-9edc-50bae3e630bf",
+    "name": "Power Bank 20000mAh",
+    "description": "High-capacity power bank",
+    "price": 32.99,
+    "stock_quantity": 100,
+    "category": "Accessories",
+    "images": [
+      {
+        "url": "https://ugreenpk.com/wp-content/uploads/2024/10/UGREEN-25683-Power-Bank-20000mAh-22.5W-PD-3.0-Fast-Charging.webp",
+        "is_primary": true
+      }
+    ]
+  },
+  {
+    "id": "f4c1fd79-ce71-496e-aadd-90c407163b35",
+    "name": "Car Phone Holder",
+    "description": "Dashboard phone mount",
+    "price": 11.49,
+    "stock_quantity": 170,
+    "category": "Accessories",
+    "images": [
+      {
+        "url": "https://cdn.thewirecutter.com/wp-content/media/2025/01/BEST-CAR-PHONE-MOUNTS-2048px-6038.jpg",
+        "is_primary": true
+      }
+    ]
+  }
+]

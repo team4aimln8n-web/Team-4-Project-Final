@@ -90,38 +90,58 @@ async function loadProducts() {
     
     const container = document.getElementById('products-container');
     
-    // Show loading spinner - use inline HTML to avoid function conflicts
-    container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
-    try {
-        // Wait for API_ENDPOINTS to be available
-        let attempts = 0;
-        while (typeof API_ENDPOINTS === 'undefined' && attempts < 50) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-        }
-        
-        if (typeof API_ENDPOINTS === 'undefined') {
-            throw new Error('API configuration not loaded');
-        }
-        
-        console.log('📡 Fetching products from:', API_ENDPOINTS.GET_PRODUCTS);
+    let renderedFromStatic = false;
 
-        // 🔥 ONLY IMPORTANT CHANGE
-        allProducts = await fetchWithCache(API_ENDPOINTS.GET_PRODUCTS);
-
-        console.log('✅ Products loaded:', allProducts.length);
-
-        // Populate category filter
-        populateCategoryFilter();
-
-        // Display products
+/* --------------------------------------------------
+   1️⃣ STATIC BOOTSTRAP (INSTANT)
+-------------------------------------------------- */
+try {
+    const staticResponse = await fetch('./data/products.json');
+    if (staticResponse.ok) {
+        allProducts = await staticResponse.json();
         displayProducts(allProducts);
-
-    } catch (error) {
-    console.error('❌ Error loading products:', error);
-    showError(container, error, 'products');
+        populateCategoryFilter();
+        renderedFromStatic = true;
+        console.log('⚡ Static products rendered');
+    }
+} catch (e) {
+    console.warn('⚠️ Static products JSON not available');
 }
+
+
+    /* --------------------------------------------------
+   2️⃣ LIVE DATA (CACHED)
+-------------------------------------------------- */
+try {
+    let attempts = 0;
+    while (typeof API_ENDPOINTS === 'undefined' && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+    }
+
+    if (typeof API_ENDPOINTS === 'undefined') {
+        throw new Error('API configuration not loaded');
+    }
+
+    console.log('📡 Fetching products from:', API_ENDPOINTS.GET_PRODUCTS);
+
+    allProducts = await fetchWithCache(API_ENDPOINTS.GET_PRODUCTS);
+
+    displayProducts(allProducts);
+    populateCategoryFilter();
+
+    console.log('✅ Live products rendered');
+
+} catch (error) {
+    console.error('❌ Error loading products:', error);
+
+    // ❗ Only show error if NOTHING rendered yet
+    if (!renderedFromStatic) {
+        showError(container, error, 'products');
+    }
+}
+
 
 }
 
